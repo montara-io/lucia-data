@@ -1,4 +1,4 @@
-PROJECT := lucia
+PROJECT := spark_endpoint
 .PHONY: test venv
 
 commands:
@@ -25,5 +25,7 @@ lint:
 	python -m pylint $(PROJECT)
 
 test:
-	echo "HELLO"
 	python -m pytest -vvv
+
+run:
+	cd spark_endpoint && FLASK_DEBUG=1 MODE=development flask run

@@ -1,0 +1,28 @@
+name: Data CI pipepline
+run-name: ${{ github.actor }} CI run 🚀
+on: [push]
+
+jobs:
+  data-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - uses: actions/checkout@v3
+      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
+      - name: List files in the repository
+        run: |
+          ls ${{ github.workspace }}
+      - name: Set up Python 3.10.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10.9'
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: install packages
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: unit tests
+        run: pytest
+      - run: echo "🍏 This job's status is ${{ job.status }}."
