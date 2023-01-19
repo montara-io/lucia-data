@@ -28,7 +28,7 @@ test:
 	python -m pytest -vvv
 
 run:
-	cd spark_endpoint && FLASK_DEBUG=1 flask run
+	FLASK_DEBUG=1 flask --app spark_endpoint/app.py run
 
 db:
 	docker run -d --name postgres \

@@ -1,5 +1,6 @@
 import json
 import os
+from typing import List, Tuple
 
 from flask import Flask, request
 
@@ -55,7 +56,7 @@ def write_events():
     return 'OK', 200
 
 
-def parse_events(unparsed_events: str, job_run_id: str) -> (list[dict], bool):
+def parse_events(unparsed_events: str, job_run_id: str) -> Tuple[List[RawEvent], bool]:
     result = []
     app_end_event = False
     for unparsed_event in unparsed_events.splitlines():
@@ -66,7 +67,7 @@ def parse_events(unparsed_events: str, job_run_id: str) -> (list[dict], bool):
     return result, app_end_event
 
 
-def write_to_db(records: list[db.Model]):
+def write_to_db(records: List[db.Model]):
     db.session.add_all(records)
     db.session.commit()
 
