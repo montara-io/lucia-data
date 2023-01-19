@@ -19,7 +19,22 @@ make install
 ```
 make compile
 ```
+### Local DB Setup
+This following command will start a local postgres instance listening on port `5432`.  
+```
+make db
+```
+To stop the local postgres instance, run the following command
+```
+make db-stop
+```
+
 ### Run Development Server
+If you want to connect to the local postgres instance, run the following command.
+```
+MODE=production make run
+```
+otherwise, the app will run with an in-memory sqlite database.
 ```
 make run
 ```

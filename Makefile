@@ -28,4 +28,14 @@ test:
 	python -m pytest -vvv
 
 run:
-	cd spark_endpoint && FLASK_DEBUG=1 MODE=development flask run
+	cd spark_endpoint && FLASK_DEBUG=1 flask run
+
+db:
+	docker run -d --name postgres \
+	-e POSTGRES_PASSWORD=postgres \
+	-v ${HOME}/postgres-data/:/var/lib/postgresql/data \
+	-p 5432:5432 \
+	postgres
+
+stop-db:
+	docker rm -f postgres
