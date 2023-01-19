@@ -10,13 +10,13 @@ from spark_endpoint.models import db
 
 logger = Logger(log_level=os.getenv('LOG_LEVEL', 'INFO'))
 
-# mode could be 'development', 'testing', 'production'
-mode = os.getenv('MODE')
-if not mode:
+# MODE could be 'development', 'testing', 'production'
+MODE = os.getenv('MODE')
+if not MODE:
     logger.info("MODE not set, defaulting to development")
-    mode = 'development'
+    MODE = 'development'
 else:
-    logger.info(f"MODE set to {mode}")
+    logger.info(f"MODE set to {MODE}")
 
 
 def create_app(environment: str):
@@ -26,7 +26,7 @@ def create_app(environment: str):
     return flask_app
 
 
-app = create_app(mode)
+app = create_app(MODE)
 
 with app.app_context():
     db.create_all()

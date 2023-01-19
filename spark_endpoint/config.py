@@ -1,7 +1,7 @@
 import os
 
 
-class Config(object):
+class Config:
     DEBUG = False
     TESTING = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
