@@ -14,17 +14,22 @@ source venv/bin/activate
 make install
 ```
 
-### Compile Requirements (use only when adding a new dependency)
+### Compile Requirements 
+*NOTE* use only when adding a new dependency
 ```
 make compile
 ```
+### Run Development Server
+```
+make run
+```
 
-### Runs Tests
+### Run Tests
 ```
 make test
 ```
 
-### Runs Linter
+### Run Linter
 ```
 make lint
 ```
