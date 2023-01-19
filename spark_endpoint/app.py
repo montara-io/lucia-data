@@ -40,22 +40,30 @@ def write_events():
         return 'Missing dmAppId param (job_run_id), cannot process request', 400
 
     try:
-        events = parse_events(payload.get('data', ''), job_run_id)
+        events, app_end_event = parse_events(payload.get('data', ''), job_run_id)
     except Exception as e:
         logger.error(f'Error parsing events: {e}')
         return 'Error parsing events', 400
 
     write_to_db(events)
+
+    if app_end_event:
+        logger.info(f"Application {job_run_id} ended, Triggering 'Spark Job Processor'")
+        #TODO: Trigger processor here
+
     logger.info(f'Completed Successfully, wrote {len(events)} events')
     return 'OK', 200
 
 
-def parse_events(unparsed_events: str, job_run_id: str) -> list[dict]:
+def parse_events(unparsed_events: str, job_run_id: str) -> (list[dict], bool):
     result = []
+    app_end_event = False
     for unparsed_event in unparsed_events.splitlines():
         event = json.loads(unparsed_event)
         result.append(RawEvent(job_run_id=job_run_id, event=event))
-    return result
+        if event.get('Event') == 'SparkListenerApplicationEnd':
+            app_end_event = True
+    return result, app_end_event
 
 
 def write_to_db(records: list[db.Model]):
