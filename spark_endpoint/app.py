@@ -50,7 +50,7 @@ def write_events():
 
     if app_end_event:
         logger.info(f"Application {job_run_id} ended, Triggering 'Spark Job Processor'")
-        # TODO: Trigger processor here
+        # TODO: Trigger processor here 
 
     logger.info(f'Completed Successfully, wrote {len(events)} events')
     return 'OK', 200
@@ -74,3 +74,4 @@ def write_to_db(records: List[db.Model]):
 
 if __name__ == '__main__':
     app.run()
+    
