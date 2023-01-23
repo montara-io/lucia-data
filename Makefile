@@ -14,9 +14,7 @@ venv:
 compile:
 	rm -f *requirements*.txt
 	pip-compile requirements.in --resolver=backtracking
-	sed -i '' '/gitlab.com/d' requirements.txt
 	pip-compile requirements-dev.in
-	sed -i '' '/gitlab.com/d' requirements-dev.txt
 
 install:
 	pip install -r requirements.txt -r requirements-dev.txt
