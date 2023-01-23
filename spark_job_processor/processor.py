@@ -37,7 +37,7 @@ def get_events_config():
 
 
 def get_events_from_db():
-    with conn.cursor as cur:
+    with conn.cursor() as cur:
         cur.execute("SELECT array_agg(event) FROM RawEvent WHERE job_run_id=%s", job_run_id)
         events_data = cur.fetchall()[0][0]
     return events_data
@@ -148,7 +148,7 @@ def insert_metrics_to_db(general_app_info: dict):
     columns = ', '.join(general_app_info.keys())
     placeholders = ', '.join(['%s'] * len(general_app_info))
     query = query.format(columns, placeholders)
-    with conn.cursor as cur:
+    with conn.cursor() as cur:
         cur.execute(query, tuple(general_app_info.values()))
         conn.commit()
 
