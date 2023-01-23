@@ -8,7 +8,7 @@
     "SparkListenerExecutorAdded": {
         "executor_id": ["Executor ID"],
         "executor_start_time": ["Timestamp"],
-        "total_cores": ["Executor Info", "Total Cores"]
+        "num_of_cores": ["Executor Info", "Total Cores"]
     },
     "SparkListenerTaskEnd": {
         "executor_id": ["Task Info", "Executor ID"],

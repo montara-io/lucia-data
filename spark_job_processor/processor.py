@@ -9,7 +9,7 @@ from spark_job_processor.db_config import DataBaseConfig
 global config
 
 executor_info = {
-    'total_cores': 0,
+    'num_of_cores': 0,
     'bytes_read': 0,
     'records_read': 0,
     'bytes_written': 0,
@@ -32,11 +32,11 @@ general_app_info = {
     'application_end_time': None,
     'num_of_executors': 0,
     'total_memory_per_executor': 0.0,
-    'total_application_cores': 0,
+    'total_num_of_cores': 0,
     'total_bytes_read': 0,
     'total_bytes_written': 0,
-    'total_shuffle_read': 0,
-    'total_shuffle_write': 0,
+    'total_shuffle_bytes_read': 0,
+    'total_shuffle_bytes_written': 0,
     'total_cpu_time_used': 0,
     'total_cpu_uptime': 0,
     'cpu_usage': 0.0,
@@ -85,17 +85,17 @@ def collect_relevant_data_from_events(events_list):
             case 'SparkListenerExecutorAdded':
                 executor_start_timestamp = find_value_in_event(event, 'executor_start_time')
                 executor_start_time = datetime.fromtimestamp(executor_start_timestamp / 1000.0)
-                total_cores = find_value_in_event(event, 'total_cores')
+                num_of_cores = find_value_in_event(event, 'num_of_cores')
                 executor_id = find_value_in_event(event, 'executor_id')
                 all_executors_info[executor_id] = executor_info.copy()
-                all_executors_info[executor_id]['total_cores'] = total_cores
+                all_executors_info[executor_id]['num_of_cores'] = num_of_cores
                 all_executors_info[executor_id]['executor_start_time'] = executor_start_time
 
             case 'SparkListenerTaskEnd':
                 exc_index = find_value_in_event(event, 'executor_id')
                 for field in ['bytes_read', 'records_read', 'bytes_written', 'records_written', 'remote_bytes_read',
                               'local_bytes_read', 'shuffle_bytes_written', 'executor_cpu_time']:
-                    sum_event_value(all_executors_info, exc_index, event, field)
+                    all_executors_info[exc_index][field] += find_value_in_event(event, field)
 
                 jvm_peak_memory = max(jvm_peak_memory, find_value_in_event(event, 'jvm_memory'))
                 python_peak_memory = max(python_peak_memory, find_value_in_event(event, 'python_memory'))
@@ -117,22 +117,17 @@ def collect_relevant_data_from_events(events_list):
     return general_app_info, all_executors_info
 
 
-def sum_event_value(dict, index, event, field):
-    dict[index][field] += find_value_in_event(event, field)
-
-
 def calc_metrics(general_app_info, all_executors_info):
     max_memory = 0
 
     for key in all_executors_info:
         all_executors_info[key]['shuffle_bytes_read'] += (all_executors_info[key]['remote_bytes_read'] +
                                                           all_executors_info[key]['local_bytes_read'])
+
         general_app_info['num_of_executors'] += 1
-        general_app_info['total_application_cores'] += all_executors_info[key]['total_cores']
-        general_app_info['total_bytes_read'] += all_executors_info[key]['bytes_read']
-        general_app_info['total_bytes_written'] += all_executors_info[key]['bytes_written']
-        general_app_info['total_shuffle_read'] += all_executors_info[key]['shuffle_bytes_read']
-        general_app_info['total_shuffle_write'] += all_executors_info[key]['shuffle_bytes_written']
+        for metric in ['num_of_cores', 'bytes_read', 'bytes_written', 'shuffle_bytes_read', 'shuffle_bytes_written']:
+            general_app_info['total_' + metric] += all_executors_info[key][metric]
+
         general_app_info['total_cpu_time_used'] += (all_executors_info[key]['executor_cpu_time'] / 1e9)
 
         if all_executors_info[key]['executor_end_time'] is not None:
@@ -142,7 +137,7 @@ def calc_metrics(general_app_info, all_executors_info):
             all_executors_info[key]['executor_run_time'] = (general_app_info['application_end_time'] -
                                                             all_executors_info[key]['executor_start_time'])
 
-        general_app_info['total_cpu_uptime'] += (all_executors_info[key]['total_cores'] *
+        general_app_info['total_cpu_uptime'] += (all_executors_info[key]['num_of_cores'] *
                                                  all_executors_info[key]['executor_run_time'].total_seconds())
 
         executor_memory = (all_executors_info[key]['jvm_peak_memory'] +
@@ -178,4 +173,3 @@ if __name__ == "__main__":
     general_app_info, all_executors_info = collect_relevant_data_from_events(events)
     general_app_info, all_executors_info = calc_metrics(general_app_info, all_executors_info)
     insert_metrics_to_db(general_app_info)
-
