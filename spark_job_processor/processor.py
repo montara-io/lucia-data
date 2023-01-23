@@ -177,6 +177,5 @@ if __name__ == "__main__":
     events = get_events_from_db()
     general_app_info, all_executors_info = collect_relevant_data_from_events(events)
     general_app_info, all_executors_info = calc_metrics(general_app_info, all_executors_info)
-    # insert_metrics_to_db(general_app_info)
-    print(all_executors_info)
-    print(general_app_info)
+    insert_metrics_to_db(general_app_info)
+
