@@ -2,38 +2,41 @@ import re
 import os
 import math
 import json
-import psycopg2
 from datetime import datetime
+
+from spark_job_processor.db_config import DataBaseConfig
 
 global config
 
-general_app_info = {'application_start_time': None,
-                    'application_end_time': None,
-                    'num_of_executors': 0,
-                    'total_memory_per_executor': 0.0,
-                    'total_application_cores': 0,
-                    'total_bytes_read': 0,
-                    'total_bytes_written': 0,
-                    'total_shuffle_read': 0,
-                    'total_shuffle_write': 0,
-                    'total_cpu_time_used': 0,
-                    'total_cpu_uptime': 0,
-                    'cpu_usage': 0.0,
-                    'max_memory_usage': 0.0}
+general_app_info = {
+    'job_id': None,
+    'job_run_id': None,
+    'application_start_time': None,
+    'application_end_time': None,
+    'num_of_executors': 0,
+    'total_memory_per_executor': 0.0,
+    'total_application_cores': 0,
+    'total_bytes_read': 0,
+    'total_bytes_written': 0,
+    'total_shuffle_read': 0,
+    'total_shuffle_write': 0,
+    'total_cpu_time_used': 0,
+    'total_cpu_uptime': 0,
+    'cpu_usage': 0.0,
+    'max_memory_usage': 0.0}
 
 job_id = os.environ.get('job_id')
 job_run_id = os.environ.get('job_run_id')
-
-conn = psycopg2.connect()
+conn = DataBaseConfig.conn
 
 
 def get_events_config():
-    with open('events_config.json') as json_file:
+    with open('spark_job_processor/events_config.json') as json_file:
         config_file = json.load(json_file)
     return config_file
 
 
-def get_events_for_db():
+def get_events_from_db():
     with conn.cursor as cur:
         cur.execute("SELECT array_agg(event) FROM RawEvent WHERE job_run_id=%s", job_run_id)
         events_data = cur.fetchall()[0][0]
@@ -54,7 +57,6 @@ def collect_relevant_data_from_events(events_list):
 
     for event in events_list:
         match event['Event']:
-
             case 'SparkListenerApplicationStart':
                 app_start_timestamp = find_value_in_event(event, 'application_start_time')
                 general_app_info['application_start_time'] = datetime.fromtimestamp(app_start_timestamp / 1000.0)
@@ -122,7 +124,7 @@ def calc_metrics(general_app_info, executors_info):
                                                         executors_info[key]['Executor Start Time'])
 
         general_app_info['total_cpu_uptime'] += (executors_info[key]['Total Cores'] *
-                                                 executors_info[key]['Executor Run time'])
+                                                 executors_info[key]['Executor Run time'].total_seconds())
 
         executor_memory = (executors_info[key]['JVM Peak Memory'] +
                            executors_info[key]['Python Peak Memory'] +
@@ -140,6 +142,8 @@ def calc_metrics(general_app_info, executors_info):
 
 
 def insert_metrics_to_db(general_app_info: dict):
+    general_app_info['job_id'] = job_id
+    general_app_info['job_run_id'] = job_run_id
     query = "INSERT INTO SparkAppMetrics ({}) VALUES ({})"
     columns = ', '.join(general_app_info.keys())
     placeholders = ', '.join(['%s'] * len(general_app_info))
@@ -151,7 +155,7 @@ def insert_metrics_to_db(general_app_info: dict):
 
 if __name__ == "__main__":
     config = get_events_config()
-    events = get_events_for_db()
+    events = get_events_from_db()
     general_app_info, executors_info = collect_relevant_data_from_events(events)
     general_app_info, executors_info = calc_metrics(general_app_info, executors_info)
     insert_metrics_to_db(general_app_info)
