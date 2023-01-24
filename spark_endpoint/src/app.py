@@ -4,10 +4,10 @@ from typing import List, Tuple
 
 from flask import Flask, request
 
-from spark_endpoint.config import app_config
-from spark_endpoint.logger import Logger
-from spark_endpoint.models import RawEvent
-from spark_endpoint.models import db
+from src.config import app_config
+from src.logger import Logger
+from src.models import RawEvent
+from src.models import db
 
 logger = Logger(log_level=os.getenv('LOG_LEVEL', 'INFO'))
 
