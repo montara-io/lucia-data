@@ -60,10 +60,6 @@ def get_events_config():
 
 
 def get_events_from_db():
-    # with conn.cursor() as cur:
-    #     cur.execute("SELECT array_agg(event) FROM raw_event WHERE job_run_id=%s", (id,))
-    #     events_data = cur.fetchall()[0][0]
-    # return events_data
     with open('input/application_1670830532539_0223_1.txt') as f:
         events = f.readlines()
         events = [json.loads(event) for event in events]
@@ -183,5 +179,4 @@ if __name__ == "__main__":
     events = get_events_from_db()
     general_app_info, all_executors_info = collect_relevant_data_from_events(events)
     general_app_info, all_executors_info = calc_metrics(general_app_info, all_executors_info)
-    # insert_metrics_to_db(general_app_info)
-    print(general_app_info)
+    insert_metrics_to_db(general_app_info)
