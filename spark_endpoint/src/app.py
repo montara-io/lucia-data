@@ -60,9 +60,9 @@ def write_events():
     if app_end_event:
         logger.info(f"Application {job_run_id} ended, Triggering 'Spark Job Processor'")
 
-        json_payload = { "job_run_id": job_run_id }
+        json_payload = json.dumps({ "job_run_id": job_run_id })
         json_payload = str.encode(json_payload)
-
+        
         kafka_producer.send(app_config[MODE].TOPIC_NAME, json_payload)
         kafka_producer.flush()
 
