@@ -30,7 +30,8 @@ def create_app(environment: str):
 app = create_app(MODE)
 
 with app.app_context():
-    db.create_all()
+    if MODE == 'testing':
+        db.create_all()
 
 
 @app.route('/events', methods=['POST'])
