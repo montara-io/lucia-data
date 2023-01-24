@@ -165,7 +165,7 @@ def insert_metrics_to_db(general_app_info: dict):
     general_app_info['job_id'] = job_id
     general_app_info['pipeline_id'] = pipeline_id
     general_app_info['pipeline_run_id'] = pipeline_run_id
-    query = "INSERT INTO spark_app_metrics ({}) VALUES ({})"
+    query = "INSERT INTO spark_job_run ({}) VALUES ({})"
     columns = ', '.join(general_app_info.keys())
     placeholders = ', '.join(['%s'] * len(general_app_info))
     query = query.format(columns, placeholders)
