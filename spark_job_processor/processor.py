@@ -9,7 +9,7 @@ from spark_job_processor.db_config import DataBaseConfig
 global config
 
 executor_info = {
-    'num_of_cores': 0,
+    'cores_num': 0,
     'bytes_read': 0,
     'records_read': 0,
     'bytes_written': 0,
@@ -27,25 +27,29 @@ executor_info = {
 }
 
 general_app_info = {
+    'id': None,
     'job_id': None,
-    'job_run_id': None,
-    'application_start_time': None,
-    'application_end_time': None,
+    'pipeline_id': None,
+    'pipeline_run_id': None,
+    'start_time': None,
+    'end_time': None,
     'num_of_executors': 0,
     'total_memory_per_executor': 0.0,
-    'total_num_of_cores': 0,
+    'total_cores_num': 0,
     'total_bytes_read': 0,
     'total_bytes_written': 0,
     'total_shuffle_bytes_read': 0,
     'total_shuffle_bytes_written': 0,
     'total_cpu_time_used': 0,
     'total_cpu_uptime': 0,
-    'cpu_usage': 0.0,
-    'max_memory_usage': 0.0
+    'cpu_utilization': 0.0,
+    'peak_memory_usage': 0.0
 }
 
+id = os.environ.get('job_run_id')
 job_id = os.environ.get('job_id')
-job_run_id = os.environ.get('job_run_id')
+pipeline_id = os.environ.get('pipeline_id')
+pipeline_run_id = os.environ.get('pipeline_run_id')
 conn = DataBaseConfig.conn
 
 
@@ -56,10 +60,14 @@ def get_events_config():
 
 
 def get_events_from_db():
-    with conn.cursor() as cur:
-        cur.execute("SELECT array_agg(event) FROM raw_event WHERE job_run_id=%s", (job_run_id,))
-        events_data = cur.fetchall()[0][0]
-    return events_data
+    # with conn.cursor() as cur:
+    #     cur.execute("SELECT array_agg(event) FROM raw_event WHERE job_run_id=%s", (id,))
+    #     events_data = cur.fetchall()[0][0]
+    # return events_data
+    with open('input/application_1670830532539_0223_1.txt') as f:
+        events = f.readlines()
+        events = [json.loads(event) for event in events]
+    return events
 
 
 def find_value_in_event(event, field):
@@ -78,19 +86,18 @@ def collect_relevant_data_from_events(events_list):
         match event['Event']:
             case 'SparkListenerApplicationStart':
                 app_start_timestamp = find_value_in_event(event, 'application_start_time')
-                general_app_info['application_start_time'] = datetime.fromtimestamp(app_start_timestamp / 1000.0)
+                general_app_info['start_time'] = datetime.fromtimestamp(app_start_timestamp / 1000.0)
 
             case 'SparkListenerApplicationEnd':
                 app_end_timestamp = find_value_in_event(event, 'application_end_time')
-                general_app_info['application_end_time'] = datetime.fromtimestamp(app_end_timestamp / 1000.0)
+                general_app_info['end_time'] = datetime.fromtimestamp(app_end_timestamp / 1000.0)
 
             case 'SparkListenerExecutorAdded':
                 executor_start_timestamp = find_value_in_event(event, 'executor_start_time')
                 executor_start_time = datetime.fromtimestamp(executor_start_timestamp / 1000.0)
-                num_of_cores = find_value_in_event(event, 'num_of_cores')
                 executor_id = find_value_in_event(event, 'executor_id')
                 all_executors_info[executor_id] = executor_info.copy()
-                all_executors_info[executor_id]['num_of_cores'] = num_of_cores
+                all_executors_info[executor_id]['cores_num'] = find_value_in_event(event, 'cores_num')
                 all_executors_info[executor_id]['executor_start_time'] = executor_start_time
 
             case 'SparkListenerTaskEnd':
@@ -127,7 +134,7 @@ def calc_metrics(general_app_info, all_executors_info):
                                                           all_executors_info[key]['local_bytes_read'])
 
         general_app_info['num_of_executors'] += 1
-        for metric in ['num_of_cores', 'bytes_read', 'bytes_written', 'shuffle_bytes_read', 'shuffle_bytes_written']:
+        for metric in ['cores_num', 'bytes_read', 'bytes_written', 'shuffle_bytes_read', 'shuffle_bytes_written']:
             general_app_info['total_' + metric] += all_executors_info[key][metric]
 
         general_app_info['total_cpu_time_used'] += (all_executors_info[key]['executor_cpu_time'] / 1e9)
@@ -136,10 +143,10 @@ def calc_metrics(general_app_info, all_executors_info):
             all_executors_info[key]['executor_run_time'] = (all_executors_info[key]['executor_end_time'] -
                                                             all_executors_info[key]['executor_start_time'])
         else:
-            all_executors_info[key]['executor_run_time'] = (general_app_info['application_end_time'] -
+            all_executors_info[key]['executor_run_time'] = (general_app_info['end_time'] -
                                                             all_executors_info[key]['executor_start_time'])
 
-        general_app_info['total_cpu_uptime'] += (all_executors_info[key]['num_of_cores'] *
+        general_app_info['total_cpu_uptime'] += (all_executors_info[key]['cores_num'] *
                                                  all_executors_info[key]['executor_run_time'].total_seconds())
 
         executor_memory = (all_executors_info[key]['jvm_peak_memory'] +
@@ -148,18 +155,20 @@ def calc_metrics(general_app_info, all_executors_info):
 
         max_memory = max(executor_memory, max_memory)
 
-    general_app_info['cpu_usage'] = (general_app_info['total_cpu_time_used'] /
-                                     general_app_info['total_cpu_uptime']) * 100
+    general_app_info['cpu_utilization'] = (general_app_info['total_cpu_time_used'] /
+                                           general_app_info['total_cpu_uptime']) * 100
 
-    general_app_info['max_memory_usage'] = (max_memory /
-                                            (general_app_info['total_memory_per_executor'] * math.pow(1024, 3))) * 100
+    general_app_info['peak_memory_usage'] = (max_memory /
+                                             (general_app_info['total_memory_per_executor'] * math.pow(1024, 3))) * 100
 
     return general_app_info, all_executors_info
 
 
 def insert_metrics_to_db(general_app_info: dict):
+    general_app_info['id'] = id
     general_app_info['job_id'] = job_id
-    general_app_info['job_run_id'] = job_run_id
+    general_app_info['pipeline_id'] = pipeline_id
+    general_app_info['pipeline_run_id'] = pipeline_run_id
     query = "INSERT INTO spark_app_metrics ({}) VALUES ({})"
     columns = ', '.join(general_app_info.keys())
     placeholders = ', '.join(['%s'] * len(general_app_info))
@@ -174,4 +183,5 @@ if __name__ == "__main__":
     events = get_events_from_db()
     general_app_info, all_executors_info = collect_relevant_data_from_events(events)
     general_app_info, all_executors_info = calc_metrics(general_app_info, all_executors_info)
-    insert_metrics_to_db(general_app_info)
+    # insert_metrics_to_db(general_app_info)
+    print(general_app_info)
