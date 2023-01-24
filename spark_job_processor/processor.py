@@ -23,7 +23,8 @@ executor_info = {
     'executor_cpu_time': 0,
     'jvm_peak_memory': 0,
     'python_peak_memory': 0,
-    'other_peak_memory': 0}
+    'other_peak_memory': 0
+}
 
 general_app_info = {
     'job_id': None,
@@ -40,7 +41,8 @@ general_app_info = {
     'total_cpu_time_used': 0,
     'total_cpu_uptime': 0,
     'cpu_usage': 0.0,
-    'max_memory_usage': 0.0}
+    'max_memory_usage': 0.0
+}
 
 job_id = os.environ.get('job_id')
 job_run_id = os.environ.get('job_run_id')
