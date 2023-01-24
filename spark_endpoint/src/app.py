@@ -3,6 +3,7 @@ import os
 from typing import List, Tuple
 
 from flask import Flask, request
+from kafka import KafkaProducer
 
 from src.config import app_config
 from src.logger import Logger
@@ -24,13 +25,21 @@ def create_app(environment: str):
     flask_app = Flask(__name__)
     flask_app.config.from_object(app_config[environment])
     db.init_app(flask_app)
-    return flask_app
+    
+    
+    kafka_producer = KafkaProducer(
+        bootstrap_servers = "kafka1:9092",
+        api_version = (0, 11, 15)
+    )
+    
+    return flask_app, kafka_producer
 
 
-app = create_app(MODE)
+app, kafka_producer = create_app(MODE)
 
 with app.app_context():
-    db.create_all()
+    if MODE == 'testing':
+        db.create_all()
 
 
 @app.route('/events', methods=['POST'])
@@ -50,7 +59,12 @@ def write_events():
 
     if app_end_event:
         logger.info(f"Application {job_run_id} ended, Triggering 'Spark Job Processor'")
-        # TODO: Trigger processor here 
+
+        json_payload = { "job_run_id": job_run_id }
+        json_payload = str.encode(json_payload)
+
+        kafka_producer.send(app_config[MODE].TOPIC_NAME, json_payload)
+        kafka_producer.flush()
 
     logger.info(f'Completed Successfully, wrote {len(events)} events')
     return 'OK', 200
