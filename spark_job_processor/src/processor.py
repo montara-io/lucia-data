@@ -13,13 +13,8 @@ from src.db_config import DataBaseConfig
 
 events_config = {}
 
+#TODO: put in config file
 TOPIC_NAME = "JOB_RUN_EVENT"
-
-consumer = KafkaConsumer(
-    auto_offset_reset='earliest',
-    bootstrap_servers=['kafka1:9092'],
-    value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-)
 
 executor_info = {
     'cores_num': 0,
@@ -192,12 +187,16 @@ def process_message(job_run_id, job_id, pipeline_id, pipeline_run_id):
 
 
 def load_events():
-    consumer.subscribe([TOPIC_NAME])
-
-    while True:
-        for msg in consumer:
-            if msg is None:
-                continue
-            #TODO: check why cant see logs in docker logs
-            print('Received message: {}'.format(msg.value))
-            process_message()
+    consumer = KafkaConsumer(
+        [TOPIC_NAME],
+        auto_offset_reset='earliest',
+        bootstrap_servers=['kafka1:9092'],
+        value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+    )
+    
+    for msg in consumer:
+        #TODO: check why cant see logs in docker logs
+        print('Received message: {}'.format(msg.value))
+        process_message()
+            
+            
