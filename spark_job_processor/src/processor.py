@@ -198,5 +198,6 @@ def load_events():
         for msg in consumer:
             if msg is None:
                 continue
+            #TODO: check why cant see logs in docker logs
             print('Received message: {}'.format(msg.value))
             process_message()
