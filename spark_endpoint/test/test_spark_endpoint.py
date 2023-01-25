@@ -33,6 +33,12 @@ class TestWriteEvents(TestCase):
 
 
 class TestParseEvents(TestCase):
+    def setUp(self):
+        self.app = app
+        self.app.config['TESTING'] = True
+        self.app.config.from_object(app_config['testing'])
+        self.client = self.app.test_client()
+        
     def test_parse_events_ok(self):
         unparsed_events = '{"Event": "SparkListenerApplicationStart"}\n{"Event": "SparkListenerApplicationEnd"}'
         job_run_id = '1'

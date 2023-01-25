@@ -26,11 +26,13 @@ def create_app(environment: str):
     flask_app.config.from_object(app_config[environment])
     db.init_app(flask_app)
     
+    kafka_producer = None
     
-    kafka_producer = KafkaProducer(
-        bootstrap_servers = "kafka1:9092",
-        api_version = (0, 11, 15)
-    )
+    if flask_app.config['TESTING'] != True:
+        kafka_producer = KafkaProducer(
+            bootstrap_servers = "kafka1:9092",
+            api_version = (0, 11, 15)
+        )
     
     return flask_app, kafka_producer
 
@@ -63,8 +65,9 @@ def write_events():
         json_payload = json.dumps({ "job_run_id": job_run_id })
         json_payload = str.encode(json_payload)
         
-        kafka_producer.send(app_config[MODE].TOPIC_NAME, json_payload)
-        kafka_producer.flush()
+        if app.config['TESTING'] != True:
+            kafka_producer.send(app_config[MODE].TOPIC_NAME, json_payload)
+            kafka_producer.flush()
 
     logger.info(f'Completed Successfully, wrote {len(events)} events')
     return 'OK', 200
