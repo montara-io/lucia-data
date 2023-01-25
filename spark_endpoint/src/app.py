@@ -12,6 +12,7 @@ from src.models import db
 
 logger = Logger(log_level=os.getenv('LOG_LEVEL', 'INFO'))
 
+
 # MODE could be 'development', 'testing', 'production'
 MODE = os.getenv('MODE')
 if not MODE:
@@ -66,7 +67,8 @@ def write_events():
         json_payload = str.encode(json_payload)
         
         if app.config['TESTING'] != True:
-            kafka_producer.send(app_config[MODE].TOPIC_NAME, json_payload)
+            # TODO: add job run event to config
+            kafka_producer.send('JOB_RUN_EVENT', json_payload)
             kafka_producer.flush()
 
     logger.info(f'Completed Successfully, wrote {len(events)} events')
