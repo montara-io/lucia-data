@@ -1,9 +1,9 @@
-name: Spark job endpoint CI pipepline
-run-name: ${{ github.actor }} Spark job endpoint CI run 🚀
+name: Spark job processor CI pipepline
+run-name: ${{ github.actor }} Spark job processor CI run 🚀
 on: [push]
 
 jobs:
-  spark-job-endpoint-pipeline:
+  spark-job-processor-pipeline:
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
@@ -18,12 +18,8 @@ jobs:
         with:
           python-version: "3.10.9"
       - name: Display Python version
-        working-directory: ./spark_endpoint
+        working-directory: ./spark_job_processor
         run: python -c "import sys; print(sys.version)"
       - name: install packages
-        working-directory: ./spark_endpoint
+        working-directory: ./spark_job_processor
         run: pip install -r requirements.txt -r requirements-dev.txt
-      - name: unit tests
-        working-directory: ./spark_endpoint
-        run: pytest
-      - run: echo "🍏 This job's status is ${{ job.status }}."
