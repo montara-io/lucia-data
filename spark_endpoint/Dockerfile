@@ -8,4 +8,4 @@ RUN pip install -r requirements.txt
 
 COPY . /app
 
-CMD [ "python", "-m" , "flask", "--app", "spark_endpoint/app.py", "run", "--host=0.0.0.0"]
+CMD [ "python", "-m" , "flask", "--app", "src/app.py", "run", "--host=0.0.0.0"]

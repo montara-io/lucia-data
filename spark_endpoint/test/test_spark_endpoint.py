@@ -2,9 +2,9 @@ import json
 from unittest import TestCase
 from unittest.mock import patch
 
-from spark_endpoint.app import app, parse_events
-from spark_endpoint.config import app_config
-from spark_endpoint.models import RawEvent
+from src.app import app, parse_events
+from src.config import app_config
+from src.models import RawEvent
 
 
 class TestWriteEvents(TestCase):
@@ -14,8 +14,8 @@ class TestWriteEvents(TestCase):
         self.app.config.from_object(app_config['testing'])
         self.client = self.app.test_client()
 
-    @patch('spark_endpoint.app.write_to_db')
-    @patch('spark_endpoint.app.parse_events')
+    @patch('src.app.write_to_db')
+    @patch('src.app.parse_events')
     def test_write_events_ok(self, parse_events_mock, write_to_db_mock):
         parse_events_mock.return_value = (
         [RawEvent(job_run_id='1', event={'Event': 'SparkListenerApplicationEnd'})], True)
@@ -33,6 +33,12 @@ class TestWriteEvents(TestCase):
 
 
 class TestParseEvents(TestCase):
+    def setUp(self):
+        self.app = app
+        self.app.config['TESTING'] = True
+        self.app.config.from_object(app_config['testing'])
+        self.client = self.app.test_client()
+        
     def test_parse_events_ok(self):
         unparsed_events = '{"Event": "SparkListenerApplicationStart"}\n{"Event": "SparkListenerApplicationEnd"}'
         job_run_id = '1'

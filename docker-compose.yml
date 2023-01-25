@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  db:
+    image: kartoza/postgis:13-3.1
+    environment:
+      - POSTGRES_DB=data_pipeline
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASS=postgres
+      - ALLOW_IP_RANGE=0.0.0.0/0
+    ports:
+      - 5432:5432
+    restart: on-failure
+    healthcheck:
+      test: "exit 0"
+    networks:
+      - lucia-network
+  # flyway:
+  #   image: flyway/flyway
+  #   command: -url=jdbc:postgresql://db:5432/data_pipeline -schemas=postgres -user=postgres -password=postgres migrate
+  #   volumes:
+  #     - ../env-setup/migrations:/flyway/sql
+  #   networks:
+  #     - lucia-network
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  zookeeper:
+    image: confluentinc/cp-zookeeper:6.2.0
+    restart: always
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: "2181"
+      ZOOKEEPER_TICK_TIME: "2000"
+      ZOOKEEPER_SERVERS: "zookeeper:22888:23888"
+    ports:
+      - "2181:2181"
+    networks:
+      - lucia-network
+  kafka1:
+    hostname: kafka1
+    healthcheck:
+      test: ["CMD-SHELL", "echo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    image: confluentinc/cp-kafka:6.2.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: ${HOST_IP}
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092,PLAINTEXT_HOST://${HOST_IP}:29092,
+      KAFKA_BROKER_ID: 1
+      KAFKA_BROKER_RACK: "r1"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_SCHEMA_REGISTRY_URL: "schemaregistry:8081"
+      KAFKA_JMX_PORT: 9991
+    networks:
+      - lucia-network
+  lucia-spark-endpoint:
+    build:
+      context: spark_endpoint
+    ports:
+      - 8181:5000
+    networks:
+      - lucia-network
+    environment:
+      NODE_ENV: local
+  lucia-job-processor:
+    build:
+      context: spark_job_processor
+    ports:
+      - 8182:5000
+    networks:
+      - lucia-network
+    environment:
+      NODE_ENV: local
+    depends_on:
+      db:
+        condition: service_healthy
+      # flyway:
+      #   condition: service_completed_successfully
+networks:
+  lucia-network:
+
+

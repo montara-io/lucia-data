@@ -4,7 +4,6 @@
 #
 #    pip-compile requirements-dev.in
 #
-
 astroid==2.13.3
     # via pylint
 attrs==22.2.0

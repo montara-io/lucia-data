@@ -1,10 +1,15 @@
+from kafka import KafkaConsumer
+import os
+import json
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 import re
 import os
 import math
 import json
 from datetime import datetime
 
-from spark_job_processor.db_config import DataBaseConfig
+from src.db_config import DataBaseConfig
 
 global config
 
@@ -52,6 +57,13 @@ pipeline_id = os.environ.get('pipeline_id')
 pipeline_run_id = os.environ.get('pipeline_run_id')
 conn = DataBaseConfig.conn
 
+TOPIC_NAME = "JOB_RUN_EVENT"
+
+consumer = KafkaConsumer(
+    TOPIC_NAME,
+    bootstrap_servers=['kafka1:9092'],
+    value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+)
 
 def get_events_config():
     with open('spark_job_processor/events_config.json') as json_file:
@@ -173,10 +185,13 @@ def insert_metrics_to_db(general_app_info: dict):
         cur.execute(query, tuple(general_app_info.values()))
         conn.commit()
 
-
-if __name__ == "__main__":
+def process_message(id, pipeline_id, pipeline_run_id):
     config = get_events_config()
     events = get_events_from_db()
     general_app_info, all_executors_info = collect_relevant_data_from_events(events)
     general_app_info, all_executors_info = calc_metrics(general_app_info, all_executors_info)
     insert_metrics_to_db(general_app_info)
+	
+for data in consumer:
+	job_metadata_data = data.value
+	process_message(job_metadata_data["id"], job_metadata_data["job_id"], job_metadata_data["pipeline_id"], job_metadata_data["pipeline_run_id"])
