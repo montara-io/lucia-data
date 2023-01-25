@@ -1,17 +1,12 @@
-from kafka import KafkaConsumer
-import os
-import json
-import uuid
-from concurrent.futures import ThreadPoolExecutor
 import re
-import os
 import math
 import json
 from datetime import datetime
+from kafka import KafkaConsumer
 
-from src.db_config import DataBaseConfig
+from spark_job_processor.src.db_config import DataBaseConfig
 
-global config
+events_config = {}
 
 executor_info = {
     'cores_num': 0,
@@ -51,10 +46,6 @@ general_app_info = {
     'peak_memory_usage': 0.0
 }
 
-id = os.environ.get('job_run_id')
-job_id = os.environ.get('job_id')
-pipeline_id = os.environ.get('pipeline_id')
-pipeline_run_id = os.environ.get('pipeline_run_id')
 conn = DataBaseConfig.conn
 
 TOPIC_NAME = "JOB_RUN_EVENT"
@@ -65,21 +56,22 @@ consumer = KafkaConsumer(
     value_deserializer=lambda m: json.loads(m.decode('utf-8')),
 )
 
+
 def get_events_config():
     with open('spark_job_processor/events_config.json') as json_file:
         config_file = json.load(json_file)
     return config_file
 
 
-def get_events_from_db():
-    with open('input/application_1670830532539_0223_1.txt') as f:
-        events = f.readlines()
-        events = [json.loads(event) for event in events]
-    return events
+def get_events_from_db(job_run_id: str):
+    with conn.cursor() as cur:
+        cur.execute("SELECT array_agg(event) FROM RawEvent WHERE job_run_id=%s", job_run_id)
+        events_data = cur.fetchall()[0][0]
+    return events_data
 
 
 def find_value_in_event(event, field):
-    for value in config[event['Event']][field]:
+    for value in events_config[event['Event']][field]:
         event = event[value]
     return event
 
@@ -172,8 +164,8 @@ def calc_metrics(general_app_info, all_executors_info):
     return general_app_info, all_executors_info
 
 
-def insert_metrics_to_db(general_app_info: dict):
-    general_app_info['id'] = id
+def insert_metrics_to_db(general_app_info: dict, job_run_id: str, job_id: str, pipeline_id: str, pipeline_run_id: str):
+    general_app_info['id'] = job_run_id
     general_app_info['job_id'] = job_id
     general_app_info['pipeline_id'] = pipeline_id
     general_app_info['pipeline_run_id'] = pipeline_run_id
@@ -185,13 +177,18 @@ def insert_metrics_to_db(general_app_info: dict):
         cur.execute(query, tuple(general_app_info.values()))
         conn.commit()
 
-def process_message(id, pipeline_id, pipeline_run_id):
-    config = get_events_config()
-    events = get_events_from_db()
+
+def process_message(job_run_id, job_id, pipeline_id, pipeline_run_id):
+    global events_config
+    events_config = get_events_config()
+    events = get_events_from_db(job_run_id)
     general_app_info, all_executors_info = collect_relevant_data_from_events(events)
     general_app_info, all_executors_info = calc_metrics(general_app_info, all_executors_info)
-    insert_metrics_to_db(general_app_info)
-	
+    insert_metrics_to_db(general_app_info, job_run_id, job_id, pipeline_id, pipeline_run_id)
+
+
 for data in consumer:
-	job_metadata_data = data.value
-	process_message(job_metadata_data["id"], job_metadata_data["job_id"], job_metadata_data["pipeline_id"], job_metadata_data["pipeline_run_id"])
+    job_metadata_data = data.value
+    process_message(job_metadata_data["job_run_id"], job_metadata_data["job_id"],
+                    job_metadata_data["pipeline_id"], job_metadata_data["pipeline_run_id"])
+
