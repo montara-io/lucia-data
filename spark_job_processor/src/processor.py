@@ -6,9 +6,6 @@ import re
 import math
 import json
 from datetime import datetime
-
-
-from spark_job_processor.src.db_config import DataBaseConfig
 from src.db_config import DataBaseConfig
 
 events_config = {}
@@ -57,7 +54,7 @@ general_app_info = {
 conn = DataBaseConfig.conn
 
 def get_events_config():
-    with open('spark_job_processor/src/events_config.json') as json_file:
+    with open('src/events_config.json') as json_file:
         config_file = json.load(json_file)
     return config_file
 

@@ -31,7 +31,7 @@ def create_app(environment: str):
     
     if flask_app.config['TESTING'] != True:
         kafka_producer = KafkaProducer(
-            bootstrap_servers = "localhost:29092",
+            bootstrap_servers = "kafka1:9092",
             api_version = (0, 11, 15)
         )
     
