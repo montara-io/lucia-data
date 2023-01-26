@@ -78,7 +78,7 @@ def write_events():
     return 'OK', 200
 
 
-def parse_events(unparsed_events: str, job_run_id: str, job_id: str, pipeline_id: str, pipeline_run_id: str) -> Tuple[List[RawEvent], bool]:
+def parse_events(unparsed_events: str, job_run_id: str, job_id: str, pipeline_id: str = None, pipeline_run_id: str = None) -> Tuple[List[RawEvent], bool]:
     result = []
     app_end_event = False
     for unparsed_event in unparsed_events.splitlines():
