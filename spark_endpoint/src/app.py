@@ -31,7 +31,7 @@ def create_app(environment: str):
     
     if flask_app.config['TESTING'] != True:
         kafka_producer = KafkaProducer(
-            bootstrap_servers = "kafka1:9092",
+            bootstrap_servers = "localhost:29092",
             api_version = (0, 11, 15)
         )
     
@@ -52,8 +52,11 @@ def write_events():
     if not job_run_id:
         return 'Missing dmAppId param (job_run_id), cannot process request', 400
 
+    job_id = payload.get('jobId', None)
+    pipeline_run_id = payload.get('pipelineRunId', None)
+    pipeline_id = payload.get('pipelineId', None)
     try:
-        events, app_end_event = parse_events(payload.get('data', ''), job_run_id)
+        events, app_end_event = parse_events(payload.get('data', ''), job_run_id, job_id, pipeline_id, pipeline_run_id)
     except Exception as e:
         logger.error(f'Error parsing events: {e}')
         return 'Error parsing events', 400
@@ -63,7 +66,7 @@ def write_events():
     if app_end_event:
         logger.info(f"Application {job_run_id} ended, Triggering 'Spark Job Processor'")
 
-        json_payload = json.dumps({ "job_run_id": job_run_id })
+        json_payload = json.dumps({ "job_run_id": job_run_id, "job_id": job_id, "pipeline_run_id": pipeline_run_id, "pipeline_id": pipeline_id})
         json_payload = str.encode(json_payload)
         
         if app.config['TESTING'] != True:
@@ -75,12 +78,12 @@ def write_events():
     return 'OK', 200
 
 
-def parse_events(unparsed_events: str, job_run_id: str) -> Tuple[List[RawEvent], bool]:
+def parse_events(unparsed_events: str, job_run_id: str, job_id: str, pipeline_id: str, pipeline_run_id: str) -> Tuple[List[RawEvent], bool]:
     result = []
     app_end_event = False
     for unparsed_event in unparsed_events.splitlines():
         event = json.loads(unparsed_event)
-        result.append(RawEvent(job_run_id=job_run_id, event=event))
+        result.append(RawEvent(job_run_id=job_run_id,job_id=job_id, pipeline_id=pipeline_id, pipeline_run_id=pipeline_run_id, event=event))
         if event.get('Event') == 'SparkListenerApplicationEnd':
             app_end_event = True
     return result, app_end_event

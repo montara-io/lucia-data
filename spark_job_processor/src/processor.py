@@ -6,7 +6,7 @@ import re
 import math
 import json
 from datetime import datetime
-from kafka import KafkaConsumer
+
 
 from spark_job_processor.src.db_config import DataBaseConfig
 from src.db_config import DataBaseConfig
@@ -57,14 +57,14 @@ general_app_info = {
 conn = DataBaseConfig.conn
 
 def get_events_config():
-    with open('spark_job_processor/events_config.json') as json_file:
+    with open('spark_job_processor/src/events_config.json') as json_file:
         config_file = json.load(json_file)
     return config_file
 
 
 def get_events_from_db(job_run_id: str):
     with conn.cursor() as cur:
-        cur.execute("SELECT array_agg(event) FROM RawEvent WHERE job_run_id=%s", job_run_id)
+        cur.execute("SELECT array_agg(event) FROM raw_event WHERE job_run_id="+ "'" + job_run_id +"'")
         events_data = cur.fetchall()[0][0]
     return events_data
 
@@ -117,10 +117,10 @@ def collect_relevant_data_from_events(events_list):
                 all_executors_info[exc_index]['executor_end_time'] = datetime.fromtimestamp(
                     find_value_in_event(event, 'executor_end_time') / 1000.0)
 
-            case 'SparkListenerEnvironmentUpdate':
-                executor_memory = int(re.search(r'\d+', find_value_in_event(event, 'executor_memory')).group())
-                general_app_info['total_memory_per_executor'] = \
-                    (executor_memory * (1 + float(find_value_in_event(event, 'memory_overhead_factor'))))
+            # case 'SparkListenerEnvironmentUpdate':
+            #     executor_memory = int(re.search(r'\d+', find_value_in_event(event, 'executor_memory')).group())
+            #     general_app_info['total_memory_per_executor'] = \
+            #         (executor_memory * (1 + float(find_value_in_event(event, 'memory_overhead_factor'))))
 
     return general_app_info, all_executors_info
 
@@ -157,8 +157,8 @@ def calc_metrics(general_app_info, all_executors_info):
     general_app_info['cpu_utilization'] = (general_app_info['total_cpu_time_used'] /
                                            general_app_info['total_cpu_uptime']) * 100
 
-    general_app_info['peak_memory_usage'] = (max_memory /
-                                             (general_app_info['total_memory_per_executor'] * math.pow(1024, 3))) * 100
+    # general_app_info['peak_memory_usage'] = (max_memory /
+    #                                          (general_app_info['total_memory_per_executor'] * math.pow(1024, 3))) * 100
 
     return general_app_info, all_executors_info
 
@@ -183,20 +183,20 @@ def process_message(job_run_id, job_id, pipeline_id, pipeline_run_id):
     events = get_events_from_db(job_run_id)
     general_app_info, all_executors_info = collect_relevant_data_from_events(events)
     general_app_info, all_executors_info = calc_metrics(general_app_info, all_executors_info)
-    insert_metrics_to_db(general_app_info)
+    insert_metrics_to_db(general_app_info=general_app_info,job_run_id=job_run_id, job_id=job_id, pipeline_id=pipeline_id, pipeline_run_id=pipeline_run_id)
 
 
 def load_events():
-    consumer = KafkaConsumer(
-        [TOPIC_NAME],
-        auto_offset_reset='earliest',
+    consumer = KafkaConsumer(        
         bootstrap_servers=['kafka1:9092'],
         value_deserializer=lambda m: json.loads(m.decode('utf-8')),
     )
     
+    consumer.subscribe(topics=[TOPIC_NAME])
+    
     for msg in consumer:
         #TODO: check why cant see logs in docker logs
         print('Received message: {}'.format(msg.value))
-        process_message()
+        process_message(msg.value["job_run_id"], msg.value["job_id"], msg.value["pipeline_id"], msg.value["pipeline_run_id"])
             
             
