@@ -114,10 +114,13 @@ def collect_relevant_data_from_events(events_list):
                 all_executors_info[exc_index]['executor_end_time'] = datetime.fromtimestamp(
                     find_value_in_event(event, 'executor_end_time') / 1000.0)
 
-            # case 'SparkListenerEnvironmentUpdate':
-            #     executor_memory = int(re.search(r'\d+', find_value_in_event(event, 'executor_memory')).group())
-            #     general_app_info['total_memory_per_executor'] = \
-            #         (executor_memory * (1 + float(find_value_in_event(event, 'memory_overhead_factor'))))
+            case 'SparkListenerEnvironmentUpdate':
+                try:
+                    executor_memory = int(re.search(r'\d+', find_value_in_event(event, 'executor_memory')).group())
+                    general_app_info['total_memory_per_executor'] = \
+                        (executor_memory * (1 + float(find_value_in_event(event, 'memory_overhead_factor'))))
+                finally:
+                    pass
 
     return general_app_info, all_executors_info
 
@@ -154,8 +157,10 @@ def calc_metrics(general_app_info, all_executors_info):
     general_app_info['cpu_utilization'] = (general_app_info['total_cpu_time_used'] /
                                            general_app_info['total_cpu_uptime']) * 100
 
-    # general_app_info['peak_memory_usage'] = (max_memory /
-    #                                          (general_app_info['total_memory_per_executor'] * math.pow(1024, 3))) * 100
+    if general_app_info['total_memory_per_executor'] != 0:
+        general_app_info['peak_memory_usage'] = (max_memory / (general_app_info['total_memory_per_executor'] *
+                                                               math.pow(1024, 3))
+                                                 ) * 100
 
     return general_app_info, all_executors_info
 
@@ -184,16 +189,15 @@ def process_message(job_run_id, job_id, pipeline_id, pipeline_run_id):
 
 
 def load_events():
-    consumer = KafkaConsumer(        
+    consumer = KafkaConsumer(
         bootstrap_servers=['kafka1:9092'],
         value_deserializer=lambda m: json.loads(m.decode('utf-8')),
     )
-    
+
     consumer.subscribe(topics=[TOPIC_NAME])
-    
+
     for msg in consumer:
         #TODO: check why cant see logs in docker logs
         print('Received message: {}'.format(msg.value))
         process_message(msg.value["job_run_id"], msg.value["job_id"], msg.value["pipeline_id"], msg.value["pipeline_run_id"])
-            
-            
+
