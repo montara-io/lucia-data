@@ -12,6 +12,7 @@ from src.models import db
 
 logger = Logger(log_level=os.getenv('LOG_LEVEL', 'INFO'))
 
+
 # MODE could be 'development', 'testing', 'production'
 MODE = os.getenv('MODE')
 if not MODE:
@@ -51,8 +52,11 @@ def write_events():
     if not job_run_id:
         return 'Missing dmAppId param (job_run_id), cannot process request', 400
 
+    job_id = payload.get('jobId', None)
+    pipeline_run_id = payload.get('pipelineRunId', None)
+    pipeline_id = payload.get('pipelineId', None)
     try:
-        events, app_end_event = parse_events(payload.get('data', ''), job_run_id)
+        events, app_end_event = parse_events(payload.get('data', ''), job_run_id, job_id, pipeline_id, pipeline_run_id)
     except Exception as e:
         logger.error(f'Error parsing events: {e}')
         return 'Error parsing events', 400
@@ -62,23 +66,24 @@ def write_events():
     if app_end_event:
         logger.info(f"Application {job_run_id} ended, Triggering 'Spark Job Processor'")
 
-        json_payload = json.dumps({ "job_run_id": job_run_id })
+        json_payload = json.dumps({ "job_run_id": job_run_id, "job_id": job_id, "pipeline_run_id": pipeline_run_id, "pipeline_id": pipeline_id})
         json_payload = str.encode(json_payload)
         
         if app.config['TESTING'] != True:
-            kafka_producer.send(app_config[MODE].TOPIC_NAME, json_payload)
+            # TODO: add job run event to config
+            kafka_producer.send('JOB_RUN_EVENT', json_payload)
             kafka_producer.flush()
 
     logger.info(f'Completed Successfully, wrote {len(events)} events')
     return 'OK', 200
 
 
-def parse_events(unparsed_events: str, job_run_id: str) -> Tuple[List[RawEvent], bool]:
+def parse_events(unparsed_events: str, job_run_id: str, job_id: str, pipeline_id: str = None, pipeline_run_id: str = None) -> Tuple[List[RawEvent], bool]:
     result = []
     app_end_event = False
     for unparsed_event in unparsed_events.splitlines():
         event = json.loads(unparsed_event)
-        result.append(RawEvent(job_run_id=job_run_id, event=event))
+        result.append(RawEvent(job_run_id=job_run_id,job_id=job_id, pipeline_id=pipeline_id, pipeline_run_id=pipeline_run_id, event=event))
         if event.get('Event') == 'SparkListenerApplicationEnd':
             app_end_event = True
     return result, app_end_event
