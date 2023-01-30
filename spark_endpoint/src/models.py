@@ -1,7 +1,8 @@
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, VARCHAR, JSON, Integer
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
+
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Column, VARCHAR, JSON
+from sqlalchemy.dialects.postgresql import UUID
 
 db = SQLAlchemy()
 

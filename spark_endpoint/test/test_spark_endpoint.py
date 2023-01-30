@@ -2,7 +2,7 @@ import json
 from unittest import TestCase
 from unittest.mock import patch
 
-from src.app import app, parse_events
+from src.app import app, kafka_producer, parse_events
 from src.config import app_config
 from src.models import RawEvent
 
@@ -14,14 +14,16 @@ class TestWriteEvents(TestCase):
         self.app.config.from_object(app_config['testing'])
         self.client = self.app.test_client()
 
+    @patch('src.app.send_to_kafka')
     @patch('src.app.write_to_db')
     @patch('src.app.parse_events')
-    def test_write_events_ok(self, parse_events_mock, write_to_db_mock):
+    def test_write_events_ok(self, parse_events_mock, write_to_db_mock, send_to_kafka_mock):
         parse_events_mock.return_value = (
         [RawEvent(job_run_id='1', event={'Event': 'SparkListenerApplicationEnd'})], True)
         write_to_db_mock.return_value = None
+        send_to_kafka_mock.return_value = None
         response = self.client.post('/events', data=json.dumps(
-            {'dmAppId': '1','jobId':'1', 'data': '{"Event": "SparkListenerApplicationEnd"}'}), content_type='application/json')
+            {'dmAppId': '1', 'jobId': '1', 'data': '{"Event": "SparkListenerApplicationEnd"}'}), content_type='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b'OK')
 
@@ -38,7 +40,7 @@ class TestParseEvents(TestCase):
         self.app.config['TESTING'] = True
         self.app.config.from_object(app_config['testing'])
         self.client = self.app.test_client()
-        
+
     def test_parse_events_ok(self):
         unparsed_events = '{"Event": "SparkListenerApplicationStart"}\n{"Event": "SparkListenerApplicationEnd"}'
         job_run_id = '1'

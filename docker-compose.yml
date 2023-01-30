@@ -9,22 +9,22 @@ services:
       - POSTGRES_PASS=postgres
       - ALLOW_IP_RANGE=0.0.0.0/0
     ports:
-      - 5432:5432
+      - "5432:5432"
     restart: on-failure
     healthcheck:
       test: "exit 0"
     networks:
       - lucia-network
-  # flyway:
-  #   image: flyway/flyway
-  #   command: -url=jdbc:postgresql://db:5432/data_pipeline -schemas=postgres -user=postgres -password=postgres migrate
-  #   volumes:
-  #     - ../env-setup/migrations:/flyway/sql
-  #   networks:
-  #     - lucia-network
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
+  flyway:
+   image: flyway/flyway
+   command: -url=jdbc:postgresql://db:5432/data_pipeline -schemas=postgres -user=postgres -password=postgres migrate
+   volumes:
+     - ../env-setup/migrations:/flyway/sql
+   networks:
+     - lucia-network
+   depends_on:
+     db:
+       condition: service_healthy
   zookeeper:
     image: confluentinc/cp-zookeeper:6.2.0
     restart: always
@@ -68,7 +68,7 @@ services:
     build:
       context: spark_endpoint
     ports:
-      - 8181:5000
+      - "8181:5000"
     networks:
       - lucia-network
     environment:
@@ -85,9 +85,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      # flyway:
-      #   condition: service_completed_successfully
+      flyway:
+       condition: service_completed_successfully
 networks:
   lucia-network:
-
-
