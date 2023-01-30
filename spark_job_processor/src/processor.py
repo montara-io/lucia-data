@@ -10,6 +10,7 @@ from src.db_config import DataBaseConfig
 
 events_config = {}
 
+
 #TODO: put in config file
 TOPIC_NAME = "JOB_RUN_EVENT"
 
