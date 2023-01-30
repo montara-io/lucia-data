@@ -61,6 +61,7 @@ def get_events_config():
 
 
 def get_events_from_db(job_run_id: str):
+    #TODO: consider to use orm
     with conn.cursor() as cur:
         cur.execute("SELECT array_agg(event) FROM raw_event WHERE job_run_id="+ "'" + job_run_id +"'")
         events_data = cur.fetchall()[0][0]
@@ -180,7 +181,7 @@ def insert_metrics_to_db(general_app_info: dict, job_run_id: str, job_id: str, p
         conn.commit()
 
 
-def process_message(job_run_id, job_id, pipeline_id, pipeline_run_id):
+def process_message(job_run_id, job_id, pipeline_id=None, pipeline_run_id=None):
     global events_config
     events_config = get_events_config()
     events = get_events_from_db(job_run_id)
@@ -190,6 +191,7 @@ def process_message(job_run_id, job_id, pipeline_id, pipeline_run_id):
 
 
 def load_events():
+    #TODO: put kafka host in config
     consumer = KafkaConsumer(
         bootstrap_servers=['kafka1:9092'],
         value_deserializer=lambda m: json.loads(m.decode('utf-8')),

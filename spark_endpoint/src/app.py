@@ -29,7 +29,9 @@ def create_app(environment: str):
     
     kafka_producer = None
     
+    # TODO: remove this if
     if flask_app.config['TESTING'] != True:
+        # TODO: put kafka host in config
         kafka_producer = KafkaProducer(
             bootstrap_servers = "kafka1:9092",
             api_version = (0, 11, 15)
@@ -69,6 +71,7 @@ def write_events():
         json_payload = json.dumps({ "job_run_id": job_run_id, "job_id": job_id, "pipeline_run_id": pipeline_run_id, "pipeline_id": pipeline_id})
         json_payload = str.encode(json_payload)
         
+        # TODO: remove this if
         if app.config['TESTING'] != True:
             # TODO: add job run event to config
             kafka_producer.send('JOB_RUN_EVENT', json_payload)
