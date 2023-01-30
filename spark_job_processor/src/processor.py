@@ -121,8 +121,9 @@ def collect_relevant_data_from_events(events_list):
                     executor_memory = int(re.search(r'\d+', find_value_in_event(event, 'executor_memory')).group())
                     general_app_info['total_memory_per_executor'] = \
                         (executor_memory * (1 + float(find_value_in_event(event, 'memory_overhead_factor'))))
-                finally:
-                    pass
+                except:
+                    # TODO add logger
+                    print("error on SparkListenerEnvironmentUpdate")
 
     return general_app_info, all_executors_info
 
