@@ -52,7 +52,7 @@ general_app_info = {
 }
 
 def get_events_config():
-    with open('spark_job_processor/src/events_config.json') as json_file:
+    with open('src/events_config.json') as json_file:
         config_file = json.load(json_file)
     return config_file
 
