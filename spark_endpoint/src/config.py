@@ -6,6 +6,8 @@ class Config:
     TESTING = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     TOPIC_NAME = "JOB_RUN_EVENT"
+    KAFKA_BOOTSTRAP_SERVERS = "kafka1:9092"
+    KAFKA_API_VERSION = (0, 11, 15)
 
 
 class ProductionConfig(Config):
@@ -16,6 +18,7 @@ class ProductionConfig(Config):
     db_name = os.environ.get('DB_NAME', 'data_pipeline')
 
     SQLALCHEMY_DATABASE_URI = f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+
 
 
 class DevelopmentConfig(Config):
