@@ -5,8 +5,8 @@ from flask import Flask, request
 from threading import Thread
 import src.processor
 import logging
-from spark_job_processor.src.models import db
-from spark_job_processor.src.config import app_config
+from src.models import db
+from src.config import app_config
 
 
 
