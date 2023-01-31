@@ -1,18 +1,17 @@
 from kafka import KafkaConsumer
-import os
+from flask import Flask
 import json
-from concurrent.futures import ThreadPoolExecutor
 import re
 import math
 import json
 from datetime import datetime
-from src.db_config import DataBaseConfig
+from src.models import db, SparkJobRun, RawEvent
+
+TOPIC_NAME = "JOB_RUN_EVENT"
 
 events_config = {}
 
-
-#TODO: put in config file
-TOPIC_NAME = "JOB_RUN_EVENT"
+app_context = None
 
 executor_info = {
     'cores_num': 0,
@@ -52,8 +51,6 @@ general_app_info = {
     'peak_memory_usage': 0.0
 }
 
-conn = DataBaseConfig.conn
-
 def get_events_config():
     with open('src/events_config.json') as json_file:
         config_file = json.load(json_file)
@@ -61,11 +58,9 @@ def get_events_config():
 
 
 def get_events_from_db(job_run_id: str):
-    #TODO: consider to use orm
-    with conn.cursor() as cur:
-        cur.execute("SELECT array_agg(event) FROM raw_event WHERE job_run_id="+ "'" + job_run_id +"'")
-        events_data = cur.fetchall()[0][0]
-    return events_data
+    with app_context:
+        events = RawEvent.query.filter_by(job_run_id=job_run_id).all()
+        return events
 
 
 def find_value_in_event(event, field):
@@ -74,13 +69,14 @@ def find_value_in_event(event, field):
     return event
 
 
-def collect_relevant_data_from_events(events_list):
+def collect_relevant_data_from_events(raw_events_list: list[RawEvent]):
     all_executors_info = dict()
     jvm_peak_memory = 0
     python_peak_memory = 0
     other_peak_memory = 0
 
-    for event in events_list:
+    for raw in raw_events_list:
+        event = raw.event
         match event['Event']:
             case 'SparkListenerApplicationStart':
                 app_start_timestamp = find_value_in_event(event, 'application_start_time')
@@ -173,25 +169,42 @@ def insert_metrics_to_db(general_app_info: dict, job_run_id: str, job_id: str, p
     general_app_info['job_id'] = job_id
     general_app_info['pipeline_id'] = pipeline_id
     general_app_info['pipeline_run_id'] = pipeline_run_id
-    query = "INSERT INTO spark_job_run ({}) VALUES ({})"
-    columns = ', '.join(general_app_info.keys())
-    placeholders = ', '.join(['%s'] * len(general_app_info))
-    query = query.format(columns, placeholders)
-    with conn.cursor() as cur:
-        cur.execute(query, tuple(general_app_info.values()))
-        conn.commit()
+    spark_job_run = SparkJobRun(id=job_run_id,
+                                job_id=job_id,
+                                pipeline_id=pipeline_id,
+                                pipeline_run_id=pipeline_run_id,
+                                start_time=general_app_info['start_time'],
+                                end_time=general_app_info['end_time'],
+                                num_of_executors=general_app_info['num_of_executors'],
+                                total_memory_per_executor=general_app_info['total_memory_per_executor'],
+                                total_cores_num=general_app_info['total_cores_num'],
+                                total_bytes_read=general_app_info['total_bytes_read'],
+                                total_bytes_written=general_app_info['total_bytes_written'],
+                                total_shuffle_bytes_read=general_app_info['total_shuffle_bytes_read'],
+                                total_shuffle_bytes_written=general_app_info['total_shuffle_bytes_written'],
+                                total_cpu_time_used=general_app_info['total_cpu_time_used'],
+                                total_cpu_uptime=general_app_info['total_cpu_uptime'],
+                                peak_memory_usage=general_app_info['peak_memory_usage']
+                                )
+    db.session.add(spark_job_run)
+    db.session.commit()
 
 
 def process_message(job_run_id, job_id, pipeline_id=None, pipeline_run_id=None):
     global events_config
-    events_config = get_events_config()
-    events = get_events_from_db(job_run_id)
-    general_app_info, all_executors_info = collect_relevant_data_from_events(events)
-    general_app_info, all_executors_info = calc_metrics(general_app_info, all_executors_info)
-    insert_metrics_to_db(general_app_info=general_app_info,job_run_id=job_run_id, job_id=job_id, pipeline_id=pipeline_id, pipeline_run_id=pipeline_run_id)
+    with app_context:
+        events_config = get_events_config()
+        events = get_events_from_db(job_run_id)
+        general_app_info, all_executors_info = collect_relevant_data_from_events(events)
+        general_app_info, all_executors_info = calc_metrics(general_app_info, all_executors_info)
+        insert_metrics_to_db(general_app_info=general_app_info,job_run_id=job_run_id, job_id=job_id, pipeline_id=pipeline_id, pipeline_run_id=pipeline_run_id)
+    
+        
 
-
-def load_events():
+def load_events(app):
+    global app_context
+    app_context = app.app_context()
+    db.init_app(app)
     #TODO: put kafka host in config
     consumer = KafkaConsumer(
         bootstrap_servers=['kafka1:9092'],
@@ -201,7 +214,9 @@ def load_events():
     consumer.subscribe(topics=[TOPIC_NAME])
 
     for msg in consumer:
-        #TODO: check why cant see logs in docker logs
-        print('Received message: {}'.format(msg.value))
-        process_message(msg.value["job_run_id"], msg.value["job_id"], msg.value["pipeline_id"], msg.value["pipeline_run_id"])
+        try: 
+            print('Received message: {}'.format(msg.value))
+            process_message(msg.value["job_run_id"], msg.value["job_id"], msg.value["pipeline_id"], msg.value["pipeline_run_id"])
+        except: 
+            print('error occured in process message')
 
