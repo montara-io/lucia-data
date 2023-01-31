@@ -20,7 +20,7 @@ install:
 	pip install -r requirements.txt -r requirements-dev.txt
 
 lint:
-	python -m pylint $(PROJECT)
+	python -m pylint src
 
 test:
 	python -m pytest -vvv
