@@ -66,7 +66,7 @@ services:
     networks:
       - lucia-network
   lucia-spark-endpoint:
-    command: flask --app spark_endpoint/app.py run --host=0.0.0.0
+    command: python -m flask --app spark_endpoint/app.py run --host=0.0.0.0
     build:
       context: .
     ports:
@@ -77,7 +77,7 @@ services:
       DB_HOST: db
       KAFKA_HOST: kafka1
   lucia-job-processor:
-    command: spark_job_processor.app
+    command: python -m spark_job_processor.app
     build:
       context: .
     ports:
