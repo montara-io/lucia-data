@@ -1,4 +1,4 @@
 flask==2.2.2
-flask_sqlalchemy==3.0.2
+sqlalchemy==2.0.0
 psycopg2-binary==2.9.5
 kafka-python==2.0.2

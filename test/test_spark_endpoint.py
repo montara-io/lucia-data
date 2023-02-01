@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from spark_endpoint.app import app, parse_events
 from common.config import app_config
-from spark_endpoint.models import RawEvent
+from common.models import RawEvent
 
 
 class TestWriteEvents(TestCase):

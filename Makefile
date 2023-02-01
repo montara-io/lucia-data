@@ -25,8 +25,8 @@ lint:
 test:
 	python -m pytest -vvv
 
-run:
-	FLASK_DEBUG=1 flask --app src/app.py run
+endpoint:
+	FLASK_DEBUG=1 flask --app spark_endpoint/app.py run
 
 db:
 	docker run -d --name postgres \
