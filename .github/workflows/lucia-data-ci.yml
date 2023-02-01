@@ -1,9 +1,9 @@
-name: Spark job endpoint CI pipepline
-run-name: ${{ github.actor }} Spark job endpoint CI run 🚀
+name: Lucia Data CI pipeline
+run-name: ${{ github.actor }} Lucia Data CI run 🚀
 on: [push]
 
 jobs:
-  spark-job-endpoint-pipeline:
+  lucia-data-ci-pipeline:
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
