@@ -1,19 +1,21 @@
+import os
 import uuid
 
 from common.config import app_config
-from common.utils import get_mode
 from sqlalchemy import Column, VARCHAR, JSON, INTEGER, FLOAT, BIGINT, TIMESTAMP
 from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Session
 
-mode = get_mode()
-engine = create_engine(app_config[mode].DATABASE_URI)
+environment = os.getenv('ENVIRONMENT', 'development')
+engine = create_engine(app_config[environment].DATABASE_URI)
 session = Session(engine)
+
 
 class Base(DeclarativeBase):
     pass
+
 
 class RawEvent(Base):
     __tablename__ = 'raw_event'

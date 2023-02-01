@@ -1,4 +1,5 @@
 import json
+import os
 from typing import List, Tuple
 
 from flask import Flask, request
@@ -6,7 +7,6 @@ from kafka import KafkaProducer
 
 from common.config import app_config
 from common.logger import get_logger
-from common.utils import get_mode
 from common.models import RawEvent
 from common.models import session
 
@@ -14,24 +14,21 @@ logger = get_logger()
 
 APPLICATION_END_EVENT = 'SparkListenerApplicationEnd'
 KAFKA_TOPIC_NAME = 'JOB_RUN_EVENT'
-MODE = get_mode()
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+CONFIG = app_config[ENVIRONMENT]
 
 
-def create_app(environment: str):
+def create_app():
     flask_app = Flask(__name__)
-    flask_app.config.from_object(app_config[environment])
+    flask_app.config.from_object(CONFIG)
     producer = KafkaProducer(
-        bootstrap_servers=app_config[environment].KAFKA_BOOTSTRAP_SERVERS,
-        api_version=app_config[environment].KAFKA_API_VERSION,
+        bootstrap_servers=CONFIG.KAFKA_BOOTSTRAP_SERVERS,
+        api_version=CONFIG.KAFKA_API_VERSION,
     )
     return flask_app, producer
 
 
-app, kafka_producer = create_app(MODE)
-
-with app.app_context():
-    if MODE == 'testing':
-        db.create_all()
+app, kafka_producer = create_app()
 
 
 @app.route('/events', methods=['POST'])
@@ -63,7 +60,6 @@ def write_events():
         }
         send_to_kafka(payload)
 
-    logger.info(f'Completed Successfully, wrote {len(events)} events')
     return 'OK', 200
 
 
@@ -87,6 +83,7 @@ def parse_events(
 def send_to_kafka(payload: dict):
     str_payload = json.dumps(payload)
     encoded_payload = str.encode(str_payload)
+    logger.info(f'Sending payload to Kafka, topic: {KAFKA_TOPIC_NAME}, payload: {str_payload}')
     kafka_producer.send(KAFKA_TOPIC_NAME, encoded_payload)
     kafka_producer.flush()
 
@@ -94,6 +91,7 @@ def send_to_kafka(payload: dict):
 def write_to_db(records: List[RawEvent]):
     session.add_all(records)
     session.commit()
+    logger.info(f'Write to DB completed successfully, wrote {len(records)} records')
 
 
 if __name__ == '__main__':

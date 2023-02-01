@@ -1,4 +1,4 @@
-{
+events_config = {
     "SparkListenerApplicationStart": {
         "application_start_time": ["Timestamp"]
     },

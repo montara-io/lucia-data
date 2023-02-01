@@ -28,6 +28,9 @@ test:
 endpoint:
 	FLASK_DEBUG=1 flask --app spark_endpoint/app.py run
 
+processor:
+	python -m spark_job_processor.app
+
 db:
 	docker run -d --name postgres \
 	-e POSTGRES_PASSWORD=postgres \
