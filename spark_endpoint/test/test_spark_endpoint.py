@@ -14,14 +14,12 @@ class TestWriteEvents(TestCase):
         self.app.config.from_object(app_config['testing'])
         self.client = self.app.test_client()
 
-    @patch('src.app.send_to_kafka')
-    @patch('src.app.write_to_db')
+    @patch('src.app.send_to_kafka', return_value=None)
+    @patch('src.app.write_to_db', return_value=None)
     @patch('src.app.parse_events')
     def test_write_events_ok(self, parse_events_mock, write_to_db_mock, send_to_kafka_mock):
         parse_events_mock.return_value = (
         [RawEvent(job_run_id='1', event={'Event': 'SparkListenerApplicationEnd'})], True)
-        write_to_db_mock.return_value = None
-        send_to_kafka_mock.return_value = None
         response = self.client.post('/events', data=json.dumps(
             {'dmAppId': '1', 'jobId': '1', 'data': '{"Event": "SparkListenerApplicationEnd"}'}), content_type='application/json')
         self.assertEqual(response.status_code, 200)

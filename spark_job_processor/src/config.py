@@ -17,7 +17,7 @@ class ProductionConfig(Config):
     db_name = os.environ.get('DB_NAME', 'data_pipeline')
 
     SQLALCHEMY_DATABASE_URI = f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
-    KAFKA_HOST = os.environ.get('KAFKA_HOST','kafka1')
+    KAFKA_HOST = os.environ.get('KAFKA_HOST', 'kafka1')
 
 class DevelopmentConfig(Config):
     db_user = os.environ.get('DB_USER', 'postgres')
@@ -26,7 +26,7 @@ class DevelopmentConfig(Config):
     db_port = os.environ.get('DB_PORT', '5432')
     db_name = os.environ.get('DB_NAME', 'data_pipeline')
     SQLALCHEMY_DATABASE_URI = f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
-    KAFKA_HOST = os.environ.get('KAFKA_HOST','kafka1')
+    KAFKA_HOST = os.environ.get('KAFKA_HOST', 'kafka1')
 
 
 class TestingConfig(Config):

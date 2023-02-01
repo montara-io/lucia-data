@@ -1,11 +1,11 @@
-from kafka import KafkaConsumer
-from flask import Flask
 import json
-import re
 import math
-import json
+import re
 from datetime import datetime
+
 from src.models import db, SparkJobRun, RawEvent
+
+from kafka import KafkaConsumer
 
 TOPIC_NAME = "JOB_RUN_EVENT"
 
@@ -50,6 +50,7 @@ general_app_info = {
     'cpu_utilization': 0.0,
     'peak_memory_usage': 0.0
 }
+
 
 def get_events_config():
     with open('src/events_config.json') as json_file:
@@ -197,15 +198,15 @@ def process_message(job_run_id, job_id, pipeline_id=None, pipeline_run_id=None):
         events = get_events_from_db(job_run_id)
         general_app_info, all_executors_info = collect_relevant_data_from_events(events)
         general_app_info, all_executors_info = calc_metrics(general_app_info, all_executors_info)
-        insert_metrics_to_db(general_app_info=general_app_info,job_run_id=job_run_id, job_id=job_id, pipeline_id=pipeline_id, pipeline_run_id=pipeline_run_id)
-    
-        
+        insert_metrics_to_db(general_app_info=general_app_info, job_run_id=job_run_id, job_id=job_id,
+                             pipeline_id=pipeline_id, pipeline_run_id=pipeline_run_id)
+
 
 def load_events(app):
     global app_context
     app_context = app.app_context()
     db.init_app(app)
-    #TODO: put kafka host in config
+    # TODO: put kafka host in config
     consumer = KafkaConsumer(
         bootstrap_servers=['kafka1:9092'],
         value_deserializer=lambda m: json.loads(m.decode('utf-8')),
@@ -214,9 +215,9 @@ def load_events(app):
     consumer.subscribe(topics=[TOPIC_NAME])
 
     for msg in consumer:
-        try: 
+        try:
             print('Received message: {}'.format(msg.value))
-            process_message(msg.value["job_run_id"], msg.value["job_id"], msg.value["pipeline_id"], msg.value["pipeline_run_id"])
-        except: 
+            process_message(msg.value["job_run_id"], msg.value["job_id"], msg.value["pipeline_id"],
+                            msg.value["pipeline_run_id"])
+        except:
             print('error occured in process message')
-
