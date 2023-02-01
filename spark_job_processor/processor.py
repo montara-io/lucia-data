@@ -2,10 +2,12 @@ import math
 import re
 from datetime import datetime
 
+from common.logger import get_logger
 from common.models import session, SparkJobRun, RawEvent
 from spark_job_processor.events_config import events_config
 from sqlalchemy import select
 
+logger = get_logger()
 
 executor_info = {
     'cores_num': 0,
@@ -84,6 +86,10 @@ def collect_relevant_data_from_events(raw_events_list: list[RawEvent]):
 
             case 'SparkListenerTaskEnd':
                 exc_index = find_value_in_event(event, 'executor_id')
+                if exc_index not in all_executors_info:
+                    logger.error(f'Executor {exc_index} not found in executors list, skipping event')
+                    continue
+
                 for field in ['bytes_read', 'records_read', 'bytes_written', 'records_written', 'remote_bytes_read',
                               'local_bytes_read', 'shuffle_bytes_written', 'executor_cpu_time']:
                     all_executors_info[exc_index][field] += find_value_in_event(event, field)
@@ -97,6 +103,10 @@ def collect_relevant_data_from_events(raw_events_list: list[RawEvent]):
 
             case 'SparkListenerExecutorRemoved' | 'SparkListenerExecutorCompleted':
                 exc_index = find_value_in_event(event, 'executor_id')
+                if exc_index not in all_executors_info:
+                    logger.error(f'Executor {exc_index} not found in executors list, skipping event')
+                    continue
+
                 all_executors_info[exc_index]['executor_end_time'] = datetime.fromtimestamp(
                     find_value_in_event(event, 'executor_end_time') / 1000.0)
 
@@ -105,9 +115,8 @@ def collect_relevant_data_from_events(raw_events_list: list[RawEvent]):
                     executor_memory = int(re.search(r'\d+', find_value_in_event(event, 'executor_memory')).group())
                     general_app_info['total_memory_per_executor'] = \
                         (executor_memory * (1 + float(find_value_in_event(event, 'memory_overhead_factor'))))
-                except:
-                    # TODO add logger
-                    print("error on SparkListenerEnvironmentUpdate")
+                except Exception as e:
+                    logger.error("Failed to parse executor memory from event: %s", e, exc_info=True)
 
     return general_app_info, all_executors_info
 

@@ -14,7 +14,6 @@ class Config:
     # Kafka config
     KAFKA_HOST = os.environ.get('KAFKA_HOST', 'localhost')
     KAFKA_PORT = os.environ.get('KAFKA_PORT', '29092')
-    KAFKA_API_VERSION = (0, 11, 15)
     KAFKA_TOPIC_NAME = "JOB_RUN_EVENT"
     KAFKA_BOOTSTRAP_SERVERS = f'{KAFKA_HOST}:{KAFKA_PORT}'
 

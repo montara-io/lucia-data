@@ -18,7 +18,8 @@ def main():
     consumer = KafkaConsumer(
         TOPIC_NAME,
         bootstrap_servers=[CONFIG.KAFKA_BOOTSTRAP_SERVERS],
-        value_deserializer=lambda m: json.loads(m.decode('utf-8')))
+        value_deserializer=lambda m: json.loads(m.decode('utf-8'))
+    )
     logger.info('Starting to consume events')
     for msg in consumer:
         try:

@@ -76,6 +76,13 @@ services:
     environment:
       DB_HOST: db
       KAFKA_HOST: kafka1
+    depends_on:
+      db:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+      kafka1:
+        condition: service_healthy
   lucia-job-processor:
     command: python -m spark_job_processor.app
     build:
@@ -92,5 +99,7 @@ services:
         condition: service_healthy
       flyway:
        condition: service_completed_successfully
+      kafka1:
+        condition: service_healthy
 networks:
   lucia-network:

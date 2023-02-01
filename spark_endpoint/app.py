@@ -23,7 +23,7 @@ def create_app():
     flask_app.config.from_object(CONFIG)
     producer = KafkaProducer(
         bootstrap_servers=CONFIG.KAFKA_BOOTSTRAP_SERVERS,
-        api_version=CONFIG.KAFKA_API_VERSION,
+        value_serializer=lambda x: json.dumps(x).encode('utf-8')
     )
     return flask_app, producer
 
@@ -81,10 +81,8 @@ def parse_events(
 
 
 def send_to_kafka(payload: dict):
-    str_payload = json.dumps(payload)
-    encoded_payload = str.encode(str_payload)
-    logger.info(f'Sending payload to Kafka, topic: {KAFKA_TOPIC_NAME}, payload: {str_payload}')
-    kafka_producer.send(KAFKA_TOPIC_NAME, encoded_payload)
+    logger.info(f'Sending payload to Kafka, topic: {KAFKA_TOPIC_NAME}, payload: {payload}')
+    kafka_producer.send(KAFKA_TOPIC_NAME, payload)
     kafka_producer.flush()
 
 
