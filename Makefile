@@ -32,11 +32,10 @@ processor:
 	python -m spark_job_processor.app
 
 db:
-	docker run -d --name postgres \
-	-e POSTGRES_PASSWORD=postgres \
-	-v ${HOME}/postgres-data/:/var/lib/postgresql/data \
-	-p 5432:5432 \
-	postgres
+	docker-compose up db -d
+
+kafka:
+	docker-compose up kafka1 -d
 
 stop-db:
 	docker rm -f postgres

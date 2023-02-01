@@ -21,9 +21,7 @@ jobs:
         working-directory: ./spark_endpoint
         run: python -c "import sys; print(sys.version)"
       - name: install packages
-        working-directory: ./spark_endpoint
         run: pip install -r requirements.txt -r requirements-dev.txt
       - name: unit tests
-        working-directory: ./spark_endpoint
-        run: pytest
+        run: pytest -vvv
       - run: echo "🍏 This job's status is ${{ job.status }}."
