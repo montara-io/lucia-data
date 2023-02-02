@@ -20,14 +20,24 @@ CONFIG = app_config[ENVIRONMENT]
 def create_app():
     flask_app = Flask(__name__)
     flask_app.config.from_object(CONFIG)
-    producer = KafkaProducer(
-        bootstrap_servers=CONFIG.KAFKA_BOOTSTRAP_SERVERS,
-        value_serializer=lambda x: json.dumps(x).encode('utf-8')
-    )
-    return flask_app, producer
+    return flask_app
 
 
-app, kafka_producer = create_app()
+def create_kafka_producer():
+    try:
+        producer = KafkaProducer(
+            bootstrap_servers=CONFIG.KAFKA_BOOTSTRAP_SERVERS,
+            value_serializer=lambda x: json.dumps(x).encode('utf-8')
+        )
+    except Exception as e:
+        logger.error(f'Error creating Kafka producer: {e}', exc_info=True)
+        producer = None
+
+    return producer
+
+
+app = create_app()
+kafka_producer = create_kafka_producer()
 
 
 @app.route('/events', methods=['POST'])

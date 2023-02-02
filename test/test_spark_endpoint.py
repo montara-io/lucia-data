@@ -14,20 +14,23 @@ class TestWriteEvents(TestCase):
         self.app.config.from_object(app_config['testing'])
         self.client = self.app.test_client()
 
+    @patch('spark_endpoint.app.create_kafka_producer', return_value=None)
     @patch('spark_endpoint.app.send_to_kafka', return_value=None)
     @patch('spark_endpoint.app.write_to_db', return_value=None)
     @patch('spark_endpoint.app.parse_events')
-    def test_write_events_ok(self, parse_events_mock, write_to_db_mock, send_to_kafka_mock):
+    def test_write_events_ok(self, parse_events_mock, *kwargs):
         parse_events_mock.return_value = (
-        [RawEvent(job_run_id='1', event={'Event': 'SparkListenerApplicationEnd'})], True)
-        response = self.client.post('/events', data=json.dumps(
-            {'dmAppId': '1', 'jobId': '1', 'data': '{"Event": "SparkListenerApplicationEnd"}'}), content_type='application/json')
+            [RawEvent(job_run_id='1', event={'Event': 'SparkListenerApplicationEnd'})], True)
+        response = self.client.post(
+            path='/events',
+            data=json.dumps({'dmAppId': '1', 'jobId': '1', 'data': '{"Event": "SparkListenerApplicationEnd"}'}),
+            content_type='application/json'
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, b'OK')
 
     def test_write_events_missing_param(self):
-        response = self.client.post('/events', data=json.dumps({'data': '{"Event": "SparkListenerApplicationEnd"}'}),
-                                    content_type='application/json')
+        response = self.client.post('/events', data=json.dumps({'data': '{"Event": "SparkListenerApplicationEnd"}'}),content_type='application/json')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data, b'Missing dmAppId param (job_run_id), cannot process request')
 
@@ -43,8 +46,8 @@ class TestParseEvents(TestCase):
         unparsed_events = '{"Event": "SparkListenerApplicationStart"}\n{"Event": "SparkListenerApplicationEnd"}'
         job_run_id = '1'
         job_id = '1'
-        expected_output = ([RawEvent(job_run_id='1',job_id=job_id, event={'Event': 'SparkListenerApplicationStart'}),
-                            RawEvent(job_run_id='1',job_id=job_id, event={'Event': 'SparkListenerApplicationEnd'})])
+        expected_output = ([RawEvent(job_run_id='1', job_id=job_id, event={'Event': 'SparkListenerApplicationStart'}),
+                            RawEvent(job_run_id='1', job_id=job_id, event={'Event': 'SparkListenerApplicationEnd'})])
         parsed_events, app_end_event = parse_events(unparsed_events, job_run_id, job_id)
 
         for i, event in enumerate(parsed_events):
