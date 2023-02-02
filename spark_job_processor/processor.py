@@ -174,14 +174,13 @@ def insert_metrics_to_db():
 
 def process_message(job_run_id, job_id, pipeline_id=None, pipeline_run_id=None):
     general_app_info.update({
-        'job_run_id': job_run_id,
+        'id': job_run_id,
         'job_id': job_id,
         'pipeline_id': pipeline_id,
         'pipeline_run_id': pipeline_run_id
     })
 
     events = get_events_from_db()
-    logger.info(f'Processing {len(events)} events for job run {job_run_id}')
     collect_relevant_data_from_events(events)
     calc_metrics()
     logger.info(f'Inserting metrics to db for job run {job_run_id}')
