@@ -47,11 +47,15 @@ general_app_info = {
     'peak_memory_usage': 0.0
 }
 
+total_cpu_time_used = general_app_info['total_cpu_time_used'],
+total_cpu_uptime = general_app_info['total_cpu_uptime'],
+peak_memory_usage = general_app_info['peak_memory_usage']
+
 all_executors_info = {}
 
 
-def get_events_from_db(job_run_id: str):
-    stmt = select(RawEvent).where(RawEvent.job_run_id == job_run_id)
+def get_events_from_db():
+    stmt = select(RawEvent).where(RawEvent.job_run_id == general_app_info['job_run_id'])
     return session.scalars(stmt)
 
 
@@ -162,34 +166,24 @@ def calc_metrics():
     return
 
 
-def insert_metrics_to_db(job_run_id: str, job_id: str, pipeline_id: str, pipeline_run_id: str):
-    spark_job_run = SparkJobRun(id=job_run_id,
-                                job_id=job_id,
-                                pipeline_id=pipeline_id,
-                                pipeline_run_id=pipeline_run_id,
-                                start_time=general_app_info['start_time'],
-                                end_time=general_app_info['end_time'],
-                                num_of_executors=general_app_info['num_of_executors'],
-                                total_memory_per_executor=general_app_info['total_memory_per_executor'],
-                                total_cores_num=general_app_info['total_cores_num'],
-                                total_bytes_read=general_app_info['total_bytes_read'],
-                                total_bytes_written=general_app_info['total_bytes_written'],
-                                total_shuffle_bytes_read=general_app_info['total_shuffle_bytes_read'],
-                                total_shuffle_bytes_written=general_app_info['total_shuffle_bytes_written'],
-                                total_cpu_time_used=general_app_info['total_cpu_time_used'],
-                                total_cpu_uptime=general_app_info['total_cpu_uptime'],
-                                peak_memory_usage=general_app_info['peak_memory_usage']
-                                )
+def insert_metrics_to_db():
+    spark_job_run = SparkJobRun(**general_app_info)
     session.add(spark_job_run)
     session.commit()
 
 
 def process_message(job_run_id, job_id, pipeline_id=None, pipeline_run_id=None):
-    events = get_events_from_db(job_run_id)
+    general_app_info.update({
+        'job_run_id': job_run_id,
+        'job_id': job_id,
+        'pipeline_id': pipeline_id,
+        'pipeline_run_id': pipeline_run_id
+    })
+
+    events = get_events_from_db()
     logger.info(f'Processing {len(events)} events for job run {job_run_id}')
     collect_relevant_data_from_events(events)
     calc_metrics()
     logger.info(f'Inserting metrics to db for job run {job_run_id}')
-    insert_metrics_to_db(job_run_id=job_run_id, job_id=job_id,
-                         pipeline_id=pipeline_id, pipeline_run_id=pipeline_run_id)
+    insert_metrics_to_db()
     logger.info(f'Finished processing job run {job_run_id}')
