@@ -14,16 +14,20 @@ CONFIG = app_config[ENVIRONMENT]
 logger = get_logger()
 
 
-def main():
+def run():
     consumer = KafkaConsumer(
         TOPIC_NAME,
         bootstrap_servers=[CONFIG.KAFKA_BOOTSTRAP_SERVERS],
         value_deserializer=lambda m: json.loads(m.decode('utf-8'))
     )
-    logger.info('Starting to consume events')
+    logger.info('Starting to consume messages')
     for msg in consumer:
         try:
             logger.info('Received message: {}'.format(msg.value))
             process_message(**msg.value)
         except Exception as e:
             logger.error('Processor error: {}'.format(e), exc_info=True)
+
+
+if __name__ == '__main__':
+    run()
