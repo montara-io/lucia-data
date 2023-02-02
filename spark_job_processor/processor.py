@@ -55,7 +55,7 @@ all_executors_info = {}
 
 
 def get_events_from_db():
-    stmt = select(RawEvent).where(RawEvent.job_run_id == general_app_info['job_run_id'])
+    stmt = select(RawEvent).where(RawEvent.job_run_id == general_app_info['id'])
     return session.scalars(stmt)
 
 
