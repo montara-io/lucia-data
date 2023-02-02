@@ -76,6 +76,7 @@ services:
     environment:
       DB_HOST: db
       KAFKA_HOST: kafka1
+      KAFKA_PORT: 9092
     depends_on:
       db:
         condition: service_healthy
@@ -94,6 +95,7 @@ services:
     environment:
       DB_HOST: db
       KAFKA_HOST: kafka1
+      KAFKA_PORT: 9092
     depends_on:
       db:
         condition: service_healthy

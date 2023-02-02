@@ -47,6 +47,8 @@ general_app_info = {
     'peak_memory_usage': 0.0
 }
 
+all_executors_info = {}
+
 
 def get_events_from_db(job_run_id: str):
     stmt = select(RawEvent).where(RawEvent.job_run_id == job_run_id)
@@ -60,7 +62,6 @@ def find_value_in_event(event, field):
 
 
 def collect_relevant_data_from_events(raw_events_list: list[RawEvent]):
-    all_executors_info = dict()
     jvm_peak_memory = 0
     python_peak_memory = 0
     other_peak_memory = 0
@@ -118,10 +119,10 @@ def collect_relevant_data_from_events(raw_events_list: list[RawEvent]):
                 except Exception as e:
                     logger.error("Failed to parse executor memory from event: %s", e, exc_info=True)
 
-    return general_app_info, all_executors_info
+    return
 
 
-def calc_metrics(general_app_info, all_executors_info):
+def calc_metrics():
     max_memory = 0
 
     for key in all_executors_info:
@@ -158,14 +159,10 @@ def calc_metrics(general_app_info, all_executors_info):
                                                                math.pow(1024, 3))
                                                  ) * 100
 
-    return general_app_info, all_executors_info
+    return
 
 
-def insert_metrics_to_db(general_app_info: dict, job_run_id: str, job_id: str, pipeline_id: str, pipeline_run_id: str):
-    general_app_info['id'] = job_run_id
-    general_app_info['job_id'] = job_id
-    general_app_info['pipeline_id'] = pipeline_id
-    general_app_info['pipeline_run_id'] = pipeline_run_id
+def insert_metrics_to_db(job_run_id: str, job_id: str, pipeline_id: str, pipeline_run_id: str):
     spark_job_run = SparkJobRun(id=job_run_id,
                                 job_id=job_id,
                                 pipeline_id=pipeline_id,
@@ -189,7 +186,10 @@ def insert_metrics_to_db(general_app_info: dict, job_run_id: str, job_id: str, p
 
 def process_message(job_run_id, job_id, pipeline_id=None, pipeline_run_id=None):
     events = get_events_from_db(job_run_id)
-    general_app_info, all_executors_info = collect_relevant_data_from_events(events)
-    general_app_info, all_executors_info = calc_metrics(general_app_info, all_executors_info)
-    insert_metrics_to_db(general_app_info=general_app_info, job_run_id=job_run_id, job_id=job_id,
+    logger.info(f'Processing {len(events)} events for job run {job_run_id}')
+    collect_relevant_data_from_events(events)
+    calc_metrics()
+    logger.info(f'Inserting metrics to db for job run {job_run_id}')
+    insert_metrics_to_db(job_run_id=job_run_id, job_id=job_id,
                          pipeline_id=pipeline_id, pipeline_run_id=pipeline_run_id)
+    logger.info(f'Finished processing job run {job_run_id}')

@@ -16,7 +16,7 @@ logger = get_logger()
 
 def run():
     consumer = KafkaConsumer(
-        TOPIC_NAME,
+        CONFIG.KAFKA_TOPIC_NAME,
         bootstrap_servers=[CONFIG.KAFKA_BOOTSTRAP_SERVERS],
         value_deserializer=lambda m: json.loads(m.decode('utf-8'))
     )

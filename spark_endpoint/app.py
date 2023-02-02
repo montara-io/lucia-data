@@ -13,7 +13,6 @@ from common.models import session
 logger = get_logger()
 
 APPLICATION_END_EVENT = 'SparkListenerApplicationEnd'
-KAFKA_TOPIC_NAME = 'JOB_RUN_EVENT'
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
 CONFIG = app_config[ENVIRONMENT]
 
@@ -81,8 +80,8 @@ def parse_events(
 
 
 def send_to_kafka(payload: dict):
-    logger.info(f'Sending payload to Kafka, topic: {KAFKA_TOPIC_NAME}, payload: {payload}')
-    kafka_producer.send(KAFKA_TOPIC_NAME, payload)
+    logger.info(f'Sending payload to Kafka, topic: {CONFIG.KAFKA_TOPIC_NAME}, payload: {payload}')
+    kafka_producer.send(CONFIG.KAFKA_TOPIC_NAME, payload)
     kafka_producer.flush()
 
 
