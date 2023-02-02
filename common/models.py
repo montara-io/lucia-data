@@ -1,12 +1,24 @@
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, VARCHAR, JSON, INTEGER, FLOAT, BIGINT, TIMESTAMP
-from sqlalchemy.dialects.postgresql import UUID
+import os
 import uuid
 
-db = SQLAlchemy()
+from common.config import app_config
+from sqlalchemy import Column, VARCHAR, JSON, INTEGER, FLOAT, BIGINT, TIMESTAMP
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import Session
+
+environment = os.getenv('ENVIRONMENT', 'development')
+engine = create_engine(app_config[environment].DATABASE_URI)
+session = Session(engine)
 
 
-class RawEvent(db.Model):
+class Base(DeclarativeBase):
+    pass
+
+
+class RawEvent(Base):
+    __tablename__ = 'raw_event'
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     job_run_id = Column(VARCHAR(255))
     job_id = Column(VARCHAR(255))
@@ -15,7 +27,8 @@ class RawEvent(db.Model):
     event = Column(JSON)
 
 
-class SparkJobRun(db.Model):
+class SparkJobRun(Base):
+    __tablename__ = 'spark_job_run'
     id = Column(VARCHAR(255), primary_key=True)
     job_id = Column(VARCHAR(255))
     pipeline_id = Column(VARCHAR(255))

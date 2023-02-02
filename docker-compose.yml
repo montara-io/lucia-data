@@ -2,11 +2,11 @@ version: '3.8'
 
 services:
   db:
-    image: kartoza/postgis:13-3.1
+    image: postgres:15.1
     environment:
       - POSTGRES_DB=data_pipeline
       - POSTGRES_USER=postgres
-      - POSTGRES_PASS=postgres
+      - POSTGRES_PASSWORD=postgres
       - ALLOW_IP_RANGE=0.0.0.0/0
     ports:
       - "5432:5432"
@@ -16,17 +16,18 @@ services:
     networks:
       - lucia-network
   flyway:
-   image: flyway/flyway
-   command: -url=jdbc:postgresql://db:5432/data_pipeline -schemas=postgres -user=postgres -password=postgres migrate
-   volumes:
-     - ../env-setup/migrations:/flyway/sql
-   networks:
+    platform: linux/amd64
+    image: flyway/flyway
+    command: -url=jdbc:postgresql://db:5432/data_pipeline -schemas=postgres -user=postgres -password=postgres migrate
+    volumes:
+     - ../lucia-deployment/env-setup/migrations:/flyway/sql
+    networks:
      - lucia-network
-   depends_on:
+    depends_on:
      db:
        condition: service_healthy
   zookeeper:
-    image: confluentinc/cp-zookeeper:6.2.0
+    image: confluentinc/cp-zookeeper:latest
     restart: always
     environment:
       ZOOKEEPER_SERVER_ID: 1
@@ -44,7 +45,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    image: confluentinc/cp-kafka:6.2.0
+    image: confluentinc/cp-kafka:latest
     depends_on:
       - zookeeper
     ports:
@@ -65,27 +66,42 @@ services:
     networks:
       - lucia-network
   lucia-spark-endpoint:
+    command: python -m flask --app spark_endpoint/app.py run --host=0.0.0.0
     build:
-      context: spark_endpoint
+      context: .
     ports:
       - "8181:5000"
     networks:
       - lucia-network
     environment:
-      NODE_ENV: local
+      DB_HOST: db
+      KAFKA_HOST: kafka1
+      KAFKA_PORT: 9092
+    depends_on:
+      db:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+      kafka1:
+        condition: service_healthy
   lucia-job-processor:
+    command: python -m spark_job_processor.app
     build:
-      context: spark_job_processor
+      context: .
     ports:
       - 8182:5000
     networks:
       - lucia-network
     environment:
-      NODE_ENV: local
+      DB_HOST: db
+      KAFKA_HOST: kafka1
+      KAFKA_PORT: 9092
     depends_on:
       db:
         condition: service_healthy
       flyway:
        condition: service_completed_successfully
+      kafka1:
+        condition: service_healthy
 networks:
   lucia-network:

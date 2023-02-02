@@ -4,42 +4,40 @@ from typing import List, Tuple
 
 from flask import Flask, request
 from kafka import KafkaProducer
-from src.config import app_config
-from src.logger import Logger
-from src.models import RawEvent
-from src.models import db
 
-logger = Logger(log_level=os.getenv('LOG_LEVEL', 'INFO'))
+from common.config import app_config
+from common.logger import get_logger
+from common.models import RawEvent
+from common.models import session
+
+logger = get_logger()
 
 APPLICATION_END_EVENT = 'SparkListenerApplicationEnd'
-KAFKA_TOPIC_NAME = 'JOB_RUN_EVENT'
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+CONFIG = app_config[ENVIRONMENT]
 
 
-# MODE could be 'development', 'testing', 'production'
-MODE = os.getenv('MODE')
-if not MODE:
-    logger.info("MODE not set, defaulting to development")
-    MODE = 'development'
-else:
-    logger.info(f"MODE set to {MODE}")
-
-
-def create_app(environment: str):
+def create_app():
     flask_app = Flask(__name__)
-    flask_app.config.from_object(app_config[environment])
-    db.init_app(flask_app)
-    producer = KafkaProducer(
-        bootstrap_servers=app_config[environment].KAFKA_BOOTSTRAP_SERVERS,
-        api_version=app_config[environment].KAFKA_API_VERSION,
-    )
-    return flask_app, producer
+    flask_app.config.from_object(CONFIG)
+    return flask_app
 
 
-app, kafka_producer = create_app(MODE)
+def create_kafka_producer():
+    try:
+        producer = KafkaProducer(
+            bootstrap_servers=CONFIG.KAFKA_BOOTSTRAP_SERVERS,
+            value_serializer=lambda x: json.dumps(x).encode('utf-8')
+        )
+    except Exception as e:
+        logger.error(f'Error creating Kafka producer: {e}', exc_info=True)
+        producer = None
 
-with app.app_context():
-    if MODE == 'testing':
-        db.create_all()
+    return producer
+
+
+app = create_app()
+kafka_producer = create_kafka_producer()
 
 
 @app.route('/events', methods=['POST'])
@@ -71,7 +69,6 @@ def write_events():
         }
         send_to_kafka(payload)
 
-    logger.info(f'Completed Successfully, wrote {len(events)} events')
     return 'OK', 200
 
 
@@ -93,15 +90,15 @@ def parse_events(
 
 
 def send_to_kafka(payload: dict):
-    str_payload = json.dumps(payload)
-    encoded_payload = str.encode(str_payload)
-    kafka_producer.send(KAFKA_TOPIC_NAME, encoded_payload)
+    logger.info(f'Sending payload to Kafka, topic: {CONFIG.KAFKA_TOPIC_NAME}, payload: {payload}')
+    kafka_producer.send(CONFIG.KAFKA_TOPIC_NAME, payload)
     kafka_producer.flush()
 
 
-def write_to_db(records: List[db.Model]):
-    db.session.add_all(records)
-    db.session.commit()
+def write_to_db(records: List[RawEvent]):
+    session.add_all(records)
+    session.commit()
+    logger.info(f'Write to DB completed successfully, wrote {len(records)} records')
 
 
 if __name__ == '__main__':
