@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 
 from common.logger import get_logger
-from common.models import session, SparkJobRun, RawEvent
+from common.models import db_session, SparkJobRun, RawEvent
 from spark_job_processor.events_config import events_config
 from sqlalchemy import select
 
@@ -56,7 +56,7 @@ all_executors_info = {}
 
 def get_events_from_db():
     stmt = select(RawEvent).where(RawEvent.job_run_id == general_app_info['id'])
-    return session.scalars(stmt)
+    return db_session.scalars(stmt)
 
 
 def find_value_in_event(event, field):
@@ -169,8 +169,8 @@ def calc_metrics():
 
 def insert_metrics_to_db():
     spark_job_run = SparkJobRun(**general_app_info)
-    session.add(spark_job_run)
-    session.commit()
+    db_session.add(spark_job_run)
+    db_session.commit()
 
 
 def process_message(job_run_id, job_id, pipeline_id=None, pipeline_run_id=None):

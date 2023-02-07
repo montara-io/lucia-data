@@ -7,8 +7,7 @@ from kafka import KafkaProducer
 
 from common.config import app_config
 from common.logger import get_logger
-from common.models import RawEvent
-from common.models import session
+from common.models import RawEvent, db_session
 
 logger = get_logger()
 
@@ -90,14 +89,19 @@ def parse_events(
 
 
 def send_to_kafka(payload: dict):
+    global kafka_producer
+    if not kafka_producer:
+        kafka_producer = create_kafka_producer()
+
     logger.info(f'Sending payload to Kafka, topic: {CONFIG.KAFKA_TOPIC_NAME}, payload: {payload}')
+
     kafka_producer.send(CONFIG.KAFKA_TOPIC_NAME, payload)
     kafka_producer.flush()
 
 
 def write_to_db(records: List[RawEvent]):
-    session.add_all(records)
-    session.commit()
+    db_session.add_all(records)
+    db_session.commit()
     logger.info(f'Write to DB completed successfully, wrote {len(records)} records')
 
 
