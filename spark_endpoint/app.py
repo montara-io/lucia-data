@@ -89,7 +89,12 @@ def parse_events(
 
 
 def send_to_kafka(payload: dict):
+    global kafka_producer
+    if not kafka_producer:
+        kafka_producer = create_kafka_producer()
+
     logger.info(f'Sending payload to Kafka, topic: {CONFIG.KAFKA_TOPIC_NAME}, payload: {payload}')
+
     kafka_producer.send(CONFIG.KAFKA_TOPIC_NAME, payload)
     kafka_producer.flush()
 
