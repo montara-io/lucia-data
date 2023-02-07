@@ -155,8 +155,9 @@ def calc_metrics():
 
         max_memory = max(executor_memory, max_memory)
 
-    general_app_info['cpu_utilization'] = (general_app_info['total_cpu_time_used'] /
-                                           general_app_info['total_cpu_uptime']) * 100
+    if general_app_info['total_cpu_uptime'] != 0:
+        general_app_info['cpu_utilization'] = (general_app_info['total_cpu_time_used'] /
+                                               general_app_info['total_cpu_uptime']) * 100
 
     if general_app_info['total_memory_per_executor'] != 0:
         general_app_info['peak_memory_usage'] = (max_memory / (general_app_info['total_memory_per_executor'] *
