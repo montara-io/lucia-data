@@ -31,11 +31,8 @@ services:
     restart: always
     environment:
       ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_CLIENT_PORT: "2181"
-      ZOOKEEPER_TICK_TIME: "2000"
-      ZOOKEEPER_SERVERS: "zookeeper:22888:23888"
-    ports:
-      - "2181:2181"
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     networks:
       - lucia-network
   kafka1:
@@ -48,21 +45,14 @@ services:
     image: confluentinc/cp-kafka:latest
     depends_on:
       - zookeeper
-    ports:
-      - "29092:29092"
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: ${HOST_IP}
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092,PLAINTEXT_HOST://${HOST_IP}:29092,
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092
       KAFKA_BROKER_ID: 1
-      KAFKA_BROKER_RACK: "r1"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_DELETE_TOPIC_ENABLE: "true"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_SCHEMA_REGISTRY_URL: "schemaregistry:8081"
-      KAFKA_JMX_PORT: 9991
     networks:
       - lucia-network
   lucia-spark-endpoint:

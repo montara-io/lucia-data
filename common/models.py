@@ -5,12 +5,12 @@ from common.config import app_config
 from sqlalchemy import Column, VARCHAR, JSON, INTEGER, FLOAT, BIGINT, TIMESTAMP
 from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import DeclarativeBase, sessionmaker, scoped_session
+
 
 environment = os.getenv('ENVIRONMENT', 'development')
 engine = create_engine(app_config[environment].DATABASE_URI)
-session = Session(engine)
+db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
 
 
 class Base(DeclarativeBase):
