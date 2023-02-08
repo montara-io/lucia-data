@@ -24,17 +24,17 @@ class TestSparkJobProcessor(TestCase):
             get_events_from_db_mock.return_value = raw_events
 
         spark_job_run = process_message(job_run_id='run_id', job_id='job_id')
-        spark_job_run = datetime_to_isoformat(spark_job_run)
 
         with open((base_path / 'resources/example_1_expected_output.json'), 'r') as f:
             expected_output = json.loads(f.read())
+            expected_output = iso_format_to_datetime(expected_output)
 
         self.assertDictEqual(spark_job_run, expected_output)
 
 
-def datetime_to_isoformat(dict_to_convert: dict) -> dict:
+def iso_format_to_datetime(dict_to_convert: dict) -> dict:
     for key, value in dict_to_convert.items():
-        if isinstance(value, datetime):
-            dict_to_convert[key] = value.isoformat()
+        if key.endswith('_time'):
+            dict_to_convert[key] = datetime.fromisoformat(value)
 
     return dict_to_convert
