@@ -187,3 +187,4 @@ def process_message(job_run_id, job_id, pipeline_id=None, pipeline_run_id=None):
     logger.info(f'Inserting metrics to db for job run {job_run_id}')
     insert_metrics_to_db()
     logger.info(f'Finished processing job run {job_run_id}')
+    return general_app_info
