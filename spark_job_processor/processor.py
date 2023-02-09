@@ -75,15 +75,15 @@ def collect_relevant_data_from_events(raw_events_list: list[RawEvent]):
         match event['Event']:
             case 'SparkListenerApplicationStart':
                 app_start_timestamp = find_value_in_event(event, 'application_start_time')
-                general_app_info['start_time'] = datetime.fromtimestamp(app_start_timestamp / 1000.0)
+                general_app_info['start_time'] = datetime.utcfromtimestamp(app_start_timestamp / 1000.0)
 
             case 'SparkListenerApplicationEnd':
                 app_end_timestamp = find_value_in_event(event, 'application_end_time')
-                general_app_info['end_time'] = datetime.fromtimestamp(app_end_timestamp / 1000.0)
+                general_app_info['end_time'] = datetime.utcfromtimestamp(app_end_timestamp / 1000.0)
 
             case 'SparkListenerExecutorAdded':
                 executor_start_timestamp = find_value_in_event(event, 'executor_start_time')
-                executor_start_time = datetime.fromtimestamp(executor_start_timestamp / 1000.0)
+                executor_start_time = datetime.utcfromtimestamp(executor_start_timestamp / 1000.0)
                 executor_id = find_value_in_event(event, 'executor_id')
                 all_executors_info[executor_id] = executor_info.copy()
                 all_executors_info[executor_id]['cores_num'] = find_value_in_event(event, 'cores_num')
@@ -112,7 +112,7 @@ def collect_relevant_data_from_events(raw_events_list: list[RawEvent]):
                     logger.error(f'Executor {exc_index} not found in executors list, skipping event')
                     continue
 
-                all_executors_info[exc_index]['executor_end_time'] = datetime.fromtimestamp(
+                all_executors_info[exc_index]['executor_end_time'] = datetime.utcfromtimestamp(
                     find_value_in_event(event, 'executor_end_time') / 1000.0)
 
             case 'SparkListenerEnvironmentUpdate':
