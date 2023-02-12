@@ -117,7 +117,7 @@ def collect_relevant_data_from_events(raw_events_list: list[RawEvent]):
 
             case 'SparkListenerEnvironmentUpdate':
                 try:
-                    executor_memory = int(re.search(r'\d+', find_value_in_event(event, 'executor_memory')).group())
+                    executor_memory = string_to_bytes(find_value_in_event(event, 'executor_memory'))
                     general_app_info['total_memory_per_executor'] = \
                         (executor_memory * (1 + float(find_value_in_event(event, 'memory_overhead_factor'))))
                 except Exception as e:
@@ -160,11 +160,27 @@ def calc_metrics():
                                                general_app_info['total_cpu_uptime']) * 100
 
     if general_app_info['total_memory_per_executor'] != 0:
-        general_app_info['peak_memory_usage'] = (max_memory / (general_app_info['total_memory_per_executor'] *
-                                                               math.pow(1024, 3))
-                                                 ) * 100
+        general_app_info['peak_memory_usage'] = (max_memory / general_app_info['total_memory_per_executor']) * 100
 
     return
+
+
+def string_to_bytes(size):
+    units = {
+        "b": 1,
+        "k": 1024,
+        "m": 1024**2,
+        "g": 1024**3,
+        "t": 1024**4
+    }
+    size = size.lower().strip()
+    num = float(size[:-1])
+    unit = size[-1]
+    try:
+        value_in_bytes = int(num * units[unit])
+    except Exception as e:
+        logger.error("Invalid unit of executor memory", e)
+    return value_in_bytes
 
 
 def insert_metrics_to_db():
