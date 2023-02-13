@@ -12,7 +12,7 @@
     },
     "SparkListenerTaskEnd": {
         "executor_id": ["Task Info", "Executor ID"],
-        "executor_cpu_time": ["Task Metrics", "Executor CPU Time"],
+        "cpu_time": ["Task Metrics", "Executor CPU Time"],
         "bytes_read": ["Task Metrics", "Input Metrics", "Bytes Read"],
         "records_read": ["Task Metrics", "Input Metrics", "Records Read"],
         "bytes_written": ["Task Metrics", "Output Metrics", "Bytes Written"],
