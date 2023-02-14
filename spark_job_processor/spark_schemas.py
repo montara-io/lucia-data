@@ -62,18 +62,22 @@ class SparkTask(BaseSpark):
     records_read: int = 0
     bytes_written: int = 0
     records_written: int = 0
-    remote_bytes_read: int = 0
-    local_bytes_read: int = 0
+    shuffle_remote_bytes_read: int = 0
+    shuffle_local_bytes_read: int = 0
     shuffle_bytes_read: int = 0
     shuffle_bytes_written: int = 0
     jvm_memory: int = 0
     python_memory: int = 0
     other_memory: int = 0
     total_memory: int = 0
+    total_shuffle_bytes_read: int = 0
 
     def set_totals(self):
         self.total_memory = sum(
             [self.jvm_memory, self.python_memory, self.other_memory]
+        )
+        self.total_shuffle_bytes_read = sum(
+            [self.shuffle_remote_bytes_read, self.shuffle_local_bytes_read]
         )
 
 

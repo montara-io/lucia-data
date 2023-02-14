@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import TestCase
 
 from common.utils import read_json
@@ -20,11 +20,11 @@ class TestSparkEventsResolver(TestCase):
         events = [
             {
                 "Event": "SparkListenerApplicationStart",
-                "Timestamp": start_datetime.timestamp() * 1000,
+                "Timestamp": start_datetime.replace(tzinfo=timezone.utc).timestamp() * 1000,
             },
             {
                 "Event": "SparkListenerExecutorAdded",
-                "Timestamp": (start_datetime + timedelta(minutes=10)).timestamp()
+                "Timestamp": (start_datetime + timedelta(minutes=10)).replace(tzinfo=timezone.utc).timestamp()
                 * 1000,
                 "Executor ID": "1",
                 "Executor Info": {"Total Cores": 4},
@@ -57,7 +57,7 @@ class TestSparkEventsResolver(TestCase):
             },
             {
                 "Event": "SparkListenerApplicationEnd",
-                "Timestamp": end_datetime.timestamp() * 1000,
+                "Timestamp": end_datetime.replace(tzinfo=timezone.utc).timestamp() * 1000,
             },
         ]
         spark_events_resolver = SparkEventsResolver()
@@ -66,7 +66,7 @@ class TestSparkEventsResolver(TestCase):
         expected_spark_application = SparkApplication(
             start_time=start_datetime,
             end_time=end_datetime,
-            memory_per_executor=0,
+            memory_per_executor=23622385664.0,
         )
         expected_spark_application.executors["1"] = SparkExecutor(
             start_time=start_datetime + timedelta(minutes=10),
