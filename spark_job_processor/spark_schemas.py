@@ -1,21 +1,21 @@
-from __future__ import annotations
-
 from collections import defaultdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Type
 
-from pydantic import BaseModel, Field
 
-
-class BaseSpark(BaseModel):
+class BaseSpark:
     def __getitem__(self, name):
-        return self.__getattribute__(name)
+        return getattr(self, name)
 
     def __setitem__(self, name, value):
-        self.__setattr__(name, value)
+        setattr(self, name, value)
+
+    def __iter__(self):
+        yield from asdict(self).items()
 
     @staticmethod
-    def calc_total(items: list[BaseSpark], return_type: Type[BaseSpark]) -> BaseSpark:
+    def calc_total(items: list['BaseSpark'], return_type: Type['BaseSpark']) -> 'BaseSpark':
         """
         Calculates the total of specified keys for a list of `items`.
         The result is stored in a `return_type` object.
@@ -53,6 +53,7 @@ class BaseSpark(BaseModel):
         return total_item
 
 
+@dataclass
 class SparkTask(BaseSpark):
     cpu_time: int = 0
     bytes_read: int = 0
@@ -78,12 +79,13 @@ class SparkTask(BaseSpark):
         )
 
 
+@dataclass
 class SparkExecutor(BaseSpark):
     start_time: datetime | None = None
     end_time: datetime | None = None
     num_cores: int = 0
     cpu_uptime: int = 0
-    tasks: list[SparkTask] = Field(default_factory=list)
+    tasks: list[SparkTask] = field(default_factory=list)
     task_total: SparkTask | None = None
 
     def set_totals(self):
@@ -95,11 +97,14 @@ class SparkExecutor(BaseSpark):
         self.task_total = self.calc_total(self.tasks, SparkTask)
 
 
+@dataclass
 class SparkApplication(BaseSpark):
     start_time: datetime | None = None
     end_time: datetime | None = None
     memory_per_executor: float = 0.0
-    executors: dict[str, SparkExecutor] = defaultdict(SparkExecutor)
+    executors: dict[str, SparkExecutor] = field(
+        default_factory=lambda: defaultdict(SparkExecutor)
+    )
     executor_total: SparkExecutor | None = None
 
     def set_totals(self):

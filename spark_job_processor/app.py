@@ -21,7 +21,7 @@ def get_events_from_db(job_run_id: str):
     return db_session.scalars(stmt)
 
 
-def insert_spark_job_run_to_db(data: dict):
+def insert_spark_job_run(data: dict):
     spark_job_run = SparkJobRun(**data)
     db_session.add(spark_job_run)
     db_session.commit()
@@ -35,12 +35,13 @@ def run():
     )
     logger.info("Starting to consume messages")
     spark_events_processor = SparkEventsProcessor()
+
     for msg in consumer:
         try:
-            logger.info("Received message: {}".format(msg.value))
-            events = [dict(raw_event.event) for raw_event in get_events_from_db(msg.value["job_run_id"])]
+            logger.info(f"Received message: {msg.value}")
+            events = [dict(raw_event.event) for raw_event in get_events_from_db(msg.value['job_run_id'])]
             application_data = spark_events_processor.process_events(events, **msg.value)
-            insert_spark_job_run_to_db(application_data)
+            insert_spark_job_run(application_data)
         except Exception as e:
             logger.error("Processor error: {}".format(e), exc_info=True)
 
