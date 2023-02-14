@@ -7,7 +7,7 @@ from kafka import KafkaProducer
 
 from common.config import app_config
 from common.logger import get_logger
-from common.models import RawEvent, db_session
+from common.db_models import RawEvent, db_session
 
 logger = get_logger()
 

@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from common.config import app_config
 from common.logger import get_logger
-from common.models import RawEvent, SparkJobRun, db_session
+from common.db_models import RawEvent, SparkJobRun, db_session
 from spark_job_processor.events_processor import EventsProcessor
 
 TOPIC_NAME = "JOB_RUN_EVENT"

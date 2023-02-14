@@ -38,7 +38,7 @@ class EventsProcessor:
                 4,
             )
 
-        job_run = {
+        processed_data = {
             "id": job_run_id,
             "job_id": job_id,
             "pipeline_id": pipeline_id,
@@ -57,4 +57,4 @@ class EventsProcessor:
             "start_time": application.start_time,
             "end_time": application.end_time,
         }
-        return job_run
+        return processed_data
