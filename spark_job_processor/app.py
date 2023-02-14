@@ -7,7 +7,7 @@ from sqlalchemy import select
 from common.config import app_config
 from common.logger import get_logger
 from common.models import RawEvent, SparkJobRun, db_session
-from spark_job_processor.spark_events_processor import SparkEventsProcessor
+from spark_job_processor.events_processor import EventsProcessor
 
 TOPIC_NAME = "JOB_RUN_EVENT"
 
@@ -34,13 +34,13 @@ def run():
         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
     )
     logger.info("Starting to consume messages")
-    spark_events_processor = SparkEventsProcessor()
+    events_processor = EventsProcessor()
 
     for msg in consumer:
         try:
             logger.info(f"Received message: {msg.value}")
             events = [dict(raw_event.event) for raw_event in get_events_from_db(msg.value['job_run_id'])]
-            application_data = spark_events_processor.process_events(events, **msg.value)
+            application_data = events_processor.process_events(events, **msg.value)
             insert_spark_job_run(application_data)
         except Exception as e:
             logger.error("Processor error: {}".format(e), exc_info=True)

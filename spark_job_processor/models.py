@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Type
 
 
-class BaseSpark:
+class BaseModel:
     def __getitem__(self, name):
         return getattr(self, name)
 
@@ -15,19 +15,19 @@ class BaseSpark:
         yield from asdict(self).items()
 
     @staticmethod
-    def calc_total(items: list['BaseSpark'], return_type: Type['BaseSpark']) -> 'BaseSpark':
+    def calc_total(items: list['BaseModel'], return_type: Type['BaseModel']) -> 'BaseModel':
         """
         Calculates the total of specified keys for a list of `items`.
         The result is stored in a `return_type` object.
         Parameters
         ----------
-        items : list of BaseSpark objects
-            A list of `BaseSpark` objects to be processed
-        return_type : Type[BaseSpark]
-            The type of object to store the result. It must be a subclass of `BaseSpark`
+        items : list of BaseModel objects
+            A list of `BaseModel` objects to be processed
+        return_type : Type[BaseModel]
+            The type of object to store the result. It must be a subclass of `BaseModel`
         Returns
         -------
-        total_item : BaseSpark
+        total_item : BaseModel
             An object of type `return_type` that contains the calculated total of specified keys
         """
 
@@ -54,7 +54,7 @@ class BaseSpark:
 
 
 @dataclass
-class SparkTask(BaseSpark):
+class Task(BaseModel):
     cpu_time: int = 0
     bytes_read: int = 0
     records_read: int = 0
@@ -80,13 +80,13 @@ class SparkTask(BaseSpark):
 
 
 @dataclass
-class SparkExecutor(BaseSpark):
+class Executor(BaseModel):
     start_time: datetime | None = None
     end_time: datetime | None = None
     num_cores: int = 0
     cpu_uptime: int = 0
-    tasks: list[SparkTask] = field(default_factory=list)
-    task_total: SparkTask | None = None
+    tasks: list[Task] = field(default_factory=list)
+    task_total: Task | None = None
 
     def set_totals(self):
         if self.start_time and self.end_time:
@@ -94,23 +94,23 @@ class SparkExecutor(BaseSpark):
                 self.end_time - self.start_time
             ).total_seconds() * self.num_cores
         list(map(lambda task: task.set_totals(), self.tasks))
-        self.task_total = self.calc_total(self.tasks, SparkTask)
+        self.task_total = self.calc_total(self.tasks, Task)
 
 
 @dataclass
-class SparkApplication(BaseSpark):
+class Application(BaseModel):
     start_time: datetime | None = None
     end_time: datetime | None = None
     memory_per_executor: float = 0.0
-    executors: dict[str, SparkExecutor] = field(
-        default_factory=lambda: defaultdict(SparkExecutor)
+    executors: dict[str, Executor] = field(
+        default_factory=lambda: defaultdict(Executor)
     )
-    executor_total: SparkExecutor | None = None
+    executor_total: Executor | None = None
 
     def set_totals(self):
         executors = self.executors.values()
         list(map(lambda executor: executor.set_totals(), executors))
-        self.executor_total = self.calc_total(executors, SparkExecutor)
+        self.executor_total = self.calc_total(executors, Executor)
         self.executor_total.task_total = self.calc_total(
-            (executor.task_total for executor in executors), SparkTask
+            (executor.task_total for executor in executors), Task
         )

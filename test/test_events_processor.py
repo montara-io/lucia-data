@@ -3,18 +3,18 @@ from datetime import datetime
 from pathlib import Path
 from unittest import TestCase
 
-from spark_job_processor.spark_events_processor import SparkEventsProcessor
+from spark_job_processor.events_processor import EventsProcessor
 
 base_path = Path(__file__).parent
 
 
-class TestSparkEventsProcessor(TestCase):
+class TestEventsProcessor(TestCase):
 
     def test_example_input(self):
         with open((base_path / 'resources/example_1_input.jsonl').resolve(), 'r', encoding='utf-8') as file:
             events = [json.loads(line) for line in file.readlines()]
 
-        application_data = SparkEventsProcessor().process_events(events, job_run_id='run_id', job_id='job_id')
+        application_data = EventsProcessor().process_events(events, job_run_id='run_id', job_id='job_id')
 
         with open((base_path / 'resources/example_1_expected_output.json'), 'r', encoding='utf-8') as file:
             expected_output = json.loads(file.read())

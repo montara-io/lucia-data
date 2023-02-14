@@ -2,19 +2,19 @@ from datetime import datetime, timedelta, timezone
 from unittest import TestCase
 
 from common.utils import read_json
-from spark_job_processor.spark_events_resolver import (
+from spark_job_processor.events_resolver import (
     CONFIG_FILE_PATH,
-    SparkEventsResolver,
+    EventsResolver,
 )
-from spark_job_processor.spark_schemas import SparkApplication, SparkExecutor, SparkTask
+from spark_job_processor.models import Application, Executor, Task
 
 
-class TestSparkEventsResolver(TestCase):
-    def test_spark_events_resolver_events_config(self):
-        spark_events_resolver = SparkEventsResolver()
-        assert spark_events_resolver.events_config == read_json(CONFIG_FILE_PATH)
+class TestEventsResolver(TestCase):
+    def test_events_resolver_events_config(self):
+        events_resolver = EventsResolver()
+        assert events_resolver.events_config == read_json(CONFIG_FILE_PATH)
 
-    def test_spark_events_resolver(self):
+    def test_events_resolver(self):
         start_datetime = datetime(2023, 1, 1, 6, 0, 0)
         end_datetime = datetime(2023, 1, 1, 7, 0, 0)
         events = [
@@ -60,20 +60,20 @@ class TestSparkEventsResolver(TestCase):
                 "Timestamp": end_datetime.replace(tzinfo=timezone.utc).timestamp() * 1000,
             },
         ]
-        spark_events_resolver = SparkEventsResolver()
-        actual_spark_application = spark_events_resolver.events_resolver(events)
+        events_resolver = EventsResolver()
+        actual_application = events_resolver.events_resolver(events)
 
-        expected_spark_application = SparkApplication(
+        expected_application = Application(
             start_time=start_datetime,
             end_time=end_datetime,
             memory_per_executor=23622385664.0,
         )
-        expected_spark_application.executors["1"] = SparkExecutor(
+        expected_application.executors["1"] = Executor(
             start_time=start_datetime + timedelta(minutes=10),
             end_time=end_datetime,
             num_cores=4,
             tasks=[
-                SparkTask(
+                Task(
                     cpu_time=1618960992,
                     bytes_read=8707238,
                     records_read=12815,
@@ -89,4 +89,4 @@ class TestSparkEventsResolver(TestCase):
                 )
             ],
         )
-        self.assertEqual(actual_spark_application, expected_spark_application)
+        self.assertEqual(actual_application, expected_application)
