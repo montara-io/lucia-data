@@ -50,13 +50,12 @@ class SparkEventsResolver(EventsResolver):
                     )
 
                 case "SparkListenerTaskEnd":
-                    executor_id = self.find_value_in_event(event, "executor_id")
-                    spark_task = SparkTask(
-                        **{
-                            field: self.find_value_in_event(event, field)
-                            for field in self.events_config["SparkListenerTaskEnd"]
-                        }
-                    )
+                    spark_task_data = {
+                        field: self.find_value_in_event(event, field)
+                        for field in self.events_config["SparkListenerTaskEnd"]
+                    }
+                    executor_id = spark_task_data.pop("executor_id")
+                    spark_task = SparkTask(**spark_task_data)
                     spark_application.executors[executor_id].tasks.append(spark_task)
 
                 case "SparkListenerExecutorRemoved" | "SparkListenerExecutorCompleted":
