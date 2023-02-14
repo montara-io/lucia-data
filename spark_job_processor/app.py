@@ -38,7 +38,7 @@ def run():
     for msg in consumer:
         try:
             logger.info("Received message: {}".format(msg.value))
-            events = [dict(raw_event.event) for raw_event in get_events_from_db(msg.value.job_run_id)]
+            events = [dict(raw_event.event) for raw_event in get_events_from_db(msg.value["job_run_id"])]
             application_data = spark_events_processor.process_events(events, **msg.value)
             insert_spark_job_run_to_db(application_data)
         except Exception as e:
