@@ -19,19 +19,16 @@ class BaseSpark(BaseModel):
         """
         Calculates the total of specified keys for a list of `items`.
         The result is stored in a `return_type` object.
-
         Parameters
         ----------
         items : list of BaseSpark objects
             A list of `BaseSpark` objects to be processed
         return_type : Type[BaseSpark]
             The type of object to store the result. It must be a subclass of `BaseSpark`
-
         Returns
         -------
         total_item : BaseSpark
             An object of type `return_type` that contains the calculated total of specified keys
-
         """
 
         max_keys = [
@@ -62,18 +59,22 @@ class SparkTask(BaseSpark):
     records_read: int = 0
     bytes_written: int = 0
     records_written: int = 0
-    remote_bytes_read: int = 0
-    local_bytes_read: int = 0
+    shuffle_remote_bytes_read: int = 0
+    shuffle_local_bytes_read: int = 0
     shuffle_bytes_read: int = 0
     shuffle_bytes_written: int = 0
     jvm_memory: int = 0
     python_memory: int = 0
     other_memory: int = 0
     total_memory: int = 0
+    total_shuffle_bytes_read: int = 0
 
     def set_totals(self):
         self.total_memory = sum(
             [self.jvm_memory, self.python_memory, self.other_memory]
+        )
+        self.total_shuffle_bytes_read = sum(
+            [self.shuffle_remote_bytes_read, self.shuffle_local_bytes_read]
         )
 
 

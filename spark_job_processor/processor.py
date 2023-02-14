@@ -119,7 +119,7 @@ def collect_relevant_data_from_events(raw_events_list: list[RawEvent]):
                 try:
                     executor_memory = string_to_bytes(find_value_in_event(event, 'executor_memory'))
                     general_app_info['total_memory_per_executor'] = \
-                        (executor_memory * (1 + float(find_value_in_event(event, 'memory_overhead_factor'))))
+                        round(executor_memory * (1 + float(find_value_in_event(event, 'memory_overhead_factor'))), 4)
                 except Exception as e:
                     logger.error("Failed to parse executor memory from event: %s", e, exc_info=True)
 
@@ -156,12 +156,12 @@ def calc_metrics():
         max_memory = max(executor_memory, max_memory)
 
     if general_app_info['total_cpu_uptime'] != 0:
-        general_app_info['cpu_utilization'] = (general_app_info['total_cpu_time_used'] /
-                                               general_app_info['total_cpu_uptime']) * 100
+        general_app_info['total_cpu_time_used'] = round(general_app_info['total_cpu_time_used'], 4)
+        general_app_info['cpu_utilization'] = round((general_app_info['total_cpu_time_used'] /
+                                               general_app_info['total_cpu_uptime']) * 100, 4)
 
     if general_app_info['total_memory_per_executor'] != 0:
-        general_app_info['peak_memory_usage'] = (max_memory / general_app_info['total_memory_per_executor']) * 100
-
+        general_app_info['peak_memory_usage'] = round((max_memory / general_app_info['total_memory_per_executor']) * 100, 4)
     return
 
 

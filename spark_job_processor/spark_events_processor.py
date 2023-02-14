@@ -15,20 +15,28 @@ class SparkEventsProcessor:
     ) -> dict:
         spark_application = self.resolver.events_resolver(events)
         spark_application.set_totals()
+        total_cpu_time_used = round(
+            spark_application.executor_total.task_total.cpu_time / 1e9, 4
+        )
 
         peak_memory_usage = 0
         if spark_application.memory_per_executor:
-            peak_memory_usage = (
-                spark_application.executor_total.task_total.total_memory
-                / spark_application.memory_per_executor
-            ) * 100
+            peak_memory_usage = round(
+                (
+                    spark_application.executor_total.task_total.total_memory
+                    / spark_application.memory_per_executor
+                )
+                * 100,
+                4,
+            )
 
         cpu_utilization = 0
         if spark_application.executor_total.cpu_uptime:
-            cpu_utilization = (
-                spark_application.executor_total.task_total.cpu_time
-                / spark_application.executor_total.cpu_uptime
-            ) * 100
+            cpu_utilization = round(
+                (total_cpu_time_used / spark_application.executor_total.cpu_uptime)
+                * 100,
+                4,
+            )
 
         spark_job_run = {
             "id": job_run_id,
@@ -36,11 +44,11 @@ class SparkEventsProcessor:
             "pipeline_id": pipeline_id,
             "pipeline_run_id": pipeline_run_id,
             "cpu_utilization": cpu_utilization,
-            "total_cpu_time_used": spark_application.executor_total.task_total.cpu_time,
+            "total_cpu_time_used": total_cpu_time_used,
             "num_of_executors": len(spark_application.executors),
             "total_memory_per_executor": spark_application.memory_per_executor,
             "total_bytes_read": spark_application.executor_total.task_total.bytes_read,
-            "total_shuffle_bytes_read": spark_application.executor_total.task_total.shuffle_bytes_read,
+            "total_shuffle_bytes_read": spark_application.executor_total.task_total.total_shuffle_bytes_read,
             "total_bytes_written": spark_application.executor_total.task_total.bytes_written,
             "total_shuffle_bytes_written": spark_application.executor_total.task_total.shuffle_bytes_written,
             "total_cpu_uptime": spark_application.executor_total.cpu_uptime,

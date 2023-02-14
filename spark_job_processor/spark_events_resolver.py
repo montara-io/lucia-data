@@ -24,7 +24,7 @@ class SparkEventsResolver(EventsResolver):
                     app_start_timestamp = self.find_value_in_event(
                         event, "application_start_time"
                     )
-                    spark_application.start_time = datetime.fromtimestamp(
+                    spark_application.start_time = datetime.utcfromtimestamp(
                         app_start_timestamp / 1000.0
                     )
 
@@ -32,7 +32,7 @@ class SparkEventsResolver(EventsResolver):
                     app_end_timestamp = self.find_value_in_event(
                         event, "application_end_time"
                     )
-                    spark_application.end_time = datetime.fromtimestamp(
+                    spark_application.end_time = datetime.utcfromtimestamp(
                         app_end_timestamp / 1000.0
                     )
 
@@ -42,7 +42,7 @@ class SparkEventsResolver(EventsResolver):
                     )
                     executor_id = self.find_value_in_event(event, "executor_id")
                     spark_executor = spark_application.executors[executor_id]
-                    spark_executor.start_time = datetime.fromtimestamp(
+                    spark_executor.start_time = datetime.utcfromtimestamp(
                         executor_start_timestamp / 1000.0
                     )
                     spark_executor.num_cores = self.find_value_in_event(
@@ -66,7 +66,7 @@ class SparkEventsResolver(EventsResolver):
                     )
                     spark_application.executors[executor_id][
                         "end_time"
-                    ] = datetime.fromtimestamp(executor_end_timestamp / 1000.0)
+                    ] = datetime.utcfromtimestamp(executor_end_timestamp / 1000.0)
 
                 case "SparkListenerEnvironmentUpdate":
                     try:
@@ -74,11 +74,7 @@ class SparkEventsResolver(EventsResolver):
                             self.find_value_in_event(event, "executor_memory")
                         )
                         memory_overhead_factor = float(
-                            string_to_bytes(
-                                self.find_value_in_event(
-                                    event, "memory_overhead_factor"
-                                )
-                            )
+                            self.find_value_in_event(event, "memory_overhead_factor")
                         )
                         spark_application.memory_per_executor = executor_memory * (
                             1 + memory_overhead_factor
